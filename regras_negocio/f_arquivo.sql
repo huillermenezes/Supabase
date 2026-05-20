@@ -10,55 +10,45 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-    r RECORD;
-    v_pasta TEXT;
-    v_nome_arquivo TEXT;
-    v_id_arquivo UUID;
 BEGIN
-    -- 1. Percorre todos os objetos no bucket 'hetzner_files'
-    -- que estejam nas pastas 'input/', 'output/' ou 'error/'
-    FOR r IN 
-        SELECT id, name 
-        FROM storage.objects 
-        WHERE bucket_id = 'hetzner_files' 
-          AND (name LIKE 'input/%' OR name LIKE 'output/%' OR name LIKE 'error/%')
-          AND name NOT LIKE '%/' -- Ignora registros que representam apenas pastas
-    LOOP
-        -- Extrai a pasta (ex: 'input') e o nome do arquivo (tudo que vem após a primeira barra '/')
-        v_pasta := split_part(r.name, '/', 1);
-        v_nome_arquivo := substring(r.name from position('/' in r.name) + 1);
+    -- 1. Insere na tabela public.arquivo todos os arquivos do storage que ainda não existem.
+    -- O id_arquivo é gerado dinamicamente usando gen_random_uuid().
+    -- O ON CONFLICT (id_storage) DO NOTHING garante que não duplicamos registros.
+    INSERT INTO public.arquivo (id_arquivo, id_storage, nome_arquivo)
+    SELECT 
+        gen_random_uuid(),
+        s.id,
+        substring(s.name from position('/' in s.name) + 1)
+    FROM 
+        storage.objects s
+    WHERE 
+        s.bucket_id = 'hetzner_files'
+        AND (s.name LIKE 'input/%' OR s.name LIKE 'output/%' OR s.name LIKE 'error/%')
+        AND s.name NOT LIKE '%/' -- Ignora registros que representam apenas pastas
+        AND substring(s.name from position('/' in s.name) + 1) IS NOT NULL
+        AND substring(s.name from position('/' in s.name) + 1) <> ''
+    ON CONFLICT (id_storage) DO NOTHING;
 
-        -- Se por algum motivo o nome do arquivo for vazio, ignora
-        IF v_nome_arquivo IS NULL OR v_nome_arquivo = '' THEN
-            CONTINUE;
-        END IF;
+    -- 2. Atualiza o nome dos arquivos existentes caso tenham sido renomeados no storage
+    UPDATE public.arquivo a
+    SET nome_arquivo = substring(s.name from position('/' in s.name) + 1)
+    FROM storage.objects s
+    WHERE a.id_storage = s.id
+      AND s.bucket_id = 'hetzner_files'
+      AND a.nome_arquivo <> substring(s.name from position('/' in s.name) + 1);
 
-        -- Verifica se o arquivo com esse id_storage já está cadastrado em public.arquivo
-        SELECT a.id_arquivo INTO v_id_arquivo 
-        FROM public.arquivo a 
-        WHERE a.id_storage = r.id;
-
-        -- Se não estiver cadastrado, faz o insert gerando um novo UUID para id_arquivo
-        IF v_id_arquivo IS NULL THEN
-            v_id_arquivo := gen_random_uuid();
-            
-            INSERT INTO public.arquivo (id_arquivo, id_storage, nome_arquivo)
-            VALUES (v_id_arquivo, r.id, v_nome_arquivo);
-        ELSE
-            -- Se já existe, garante que o nome_arquivo está atualizado
-            UPDATE public.arquivo 
-            SET nome_arquivo = v_nome_arquivo 
-            WHERE id_storage = r.id;
-        END IF;
-
-        -- Define os valores de retorno
-        id_arquivo := v_id_arquivo;
-        id_storage := r.id;
-        pasta := v_pasta;
-        nome_arquivo := v_nome_arquivo;
-        
-        RETURN NEXT;
-    END LOOP;
+    -- 3. Retorna a lista unificada e atualizada dos arquivos
+    RETURN QUERY
+    SELECT 
+        a.id_arquivo,
+        a.id_storage,
+        split_part(s.name, '/', 1) AS pasta,
+        a.nome_arquivo
+    FROM 
+        public.arquivo a
+    JOIN 
+        storage.objects s ON a.id_storage = s.id
+    WHERE 
+        s.bucket_id = 'hetzner_files';
 END;
 $$;

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.arquivo (
 	, id_storage											UUID NOT NULL
 	, nome_arquivo											TEXT NOT NULL
 	, CONSTRAINT pk_arquivo PRIMARY KEY (id_arquivo)
+	, CONSTRAINT uk_arquivo_id_storage UNIQUE (id_storage)
 );
 
 CREATE TABLE IF NOT EXISTS public.registro_arquivo (
