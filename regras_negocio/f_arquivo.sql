@@ -16,7 +16,7 @@ BEGIN
     -- O ON CONFLICT (id_storage) DO NOTHING garante que não duplicamos registros.
     INSERT INTO public.arquivo (id_arquivo, id_storage, nome_arquivo)
     SELECT 
-        gen_random_uuid(),
+        s.id,
         s.id,
         substring(s.name from position('/' in s.name) + 1)
     FROM 
