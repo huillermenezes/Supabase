@@ -1,14 +1,3 @@
-DROP TABLE IF EXISTS entrada_arquivo;
-DROP TABLE IF EXISTS entrada_arquivo_layout;
-DROP TABLE IF EXISTS entrada_arquivo_layout_campo;
-DROP TABLE IF EXISTS entrada_arquivo_empresa;
-DROP TABLE IF EXISTS header_arquivo;
-DROP TABLE IF EXISTS header_lote;
-DROP TABLE IF EXISTS movimento_arquivo;
-DROP TABLE IF EXISTS trailer_lote;
-DROP TABLE IF EXISTS trailer_arquivo;
-
-
 DROP TABLE IF EXISTS arquivo;
 DROP TABLE IF EXISTS registro_arquivo;
 DROP TABLE IF EXISTS leiaute_arquivo;
@@ -16,7 +5,7 @@ DROP TABLE IF EXISTS leiaute_campo_arquivo;
 DROP TABLE IF EXISTS parametro_leiaute_arquivo;
 
 CREATE TABLE IF NOT EXISTS public.arquivo (
-	id_arquivo											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	id_arquivo											UUID NOT NULL
 	, id_storage											UUID NOT NULL
 	, nome_arquivo											TEXT NOT NULL
 	, CONSTRAINT pk_arquivo PRIMARY KEY (id_arquivo)
@@ -24,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.arquivo (
 
 CREATE TABLE IF NOT EXISTS public.registro_arquivo (
 	id_registro_arquivo								BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
-	, id_arquivo											BIGINT NOT NULL
+	, id_arquivo											UUID NOT NULL
 	, numero_linha											INTEGER NOT NULL
 	, linha_arquivo										TEXT NOT NULL
 	, mensagem_erro										TEXT NULL
