@@ -1,27 +1,21 @@
-DROP TABLE IF EXISTS arquivo;
-DROP TABLE IF EXISTS registro_arquivo;
 DROP TABLE IF EXISTS leiaute_arquivo;
 DROP TABLE IF EXISTS leiaute_campo_arquivo;
 DROP TABLE IF EXISTS parametro_leiaute_arquivo;
 
-CREATE TABLE IF NOT EXISTS public.arquivo (
-	id_arquivo											UUID NOT NULL
-	, id_storage											UUID NOT NULL
-	, nome_arquivo											TEXT NOT NULL
-	, CONSTRAINT pk_arquivo PRIMARY KEY (id_arquivo)
-	, CONSTRAINT uk_arquivo_id_storage UNIQUE (id_storage)
-);
+CREATE SEQUENCE IF NOT EXISTS seq_pkey;
+
+DROP TABLE IF EXISTS public.registro_arquivo;
 
 CREATE TABLE IF NOT EXISTS public.registro_arquivo (
-	id_registro_arquivo								BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	id_registro_arquivo								BIGINT NOT NULL PRIMARY KEY DEFAULT nextval('seq_pkey')
 	, id_arquivo											UUID NOT NULL
-	, numero_linha											INTEGER NOT NULL
+	, nome_arquivo											TEXT NOT NULL
+	, numero_linha											BIGINT NOT NULL
 	, linha_arquivo										TEXT NOT NULL
-	, mensagem_erro										TEXT NULL
-	, conteudo_json										JSONB NULL
-	, CONSTRAINT pk_registro_arquivo PRIMARY KEY (id_registro_arquivo)
-	, CONSTRAINT uk_registro_arquivo_numero_linha UNIQUE (id_arquivo, numero_linha)
-	, CONSTRAINT fk_registro_arquivo_arquivo FOREIGN KEY (id_arquivo) REFERENCES public.arquivo(id_arquivo)
+	, mensagem_erro										TEXT
+	, conteudo_jsonb										JSONB
+	, CONSTRAINT unq_registro_arquivo_id_arquivo_numero_linha UNIQUE (id_arquivo, numero_linha)
+	, CONSTRAINT fk_registro_arquivo_storage FOREIGN KEY (id_arquivo) REFERENCES storage.objects(id)
 );
 
 CREATE TABLE IF NOT EXISTS public.leiaute_arquivo (
@@ -71,3 +65,22 @@ CREATE TABLE IF NOT EXISTS public.parametro_leiaute_arquivo (
 	, CONSTRAINT fk_parametro_leiaute_arquivo_banco FOREIGN KEY (id_banco) REFERENCES public.banco(id_banco)
 	, CONSTRAINT fk_parametro_leiaute_arquivo_conta_financeira FOREIGN KEY (id_conta_financeira) REFERENCES public.conta_financeira(id_conta_financeira)
 );
+
+CREATE TABLE IF NOT EXISTS public.storage_objects_download (
+	id_storage_objects_download					BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo											UUID NOT NULL
+	, nome_arquivo											TEXT NOT NULL
+	, caminho_origem										TEXT NOT NULL
+	, caminho_destino										TEXT
+	, id_leiaute_arquivo									BIGINT
+	, status													INTEGER NOT NULL DEFAULT 1 -- 1 = 'pendente', 2 = 'baixando', 3 = 'baixado', 4 = 'erro_download', 5 = 'erro_layout', 6 = 'processado'
+	, mensagem_erro										TEXT
+	, request_id_leitura									BIGINT
+	, request_id_move										BIGINT
+	, criado_em												TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+	, atualizado_em										TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+	, CONSTRAINT pk_storage_objects_download PRIMARY KEY (id_storage_objects_download)
+	, CONSTRAINT fk_storage_objects_download_storage FOREIGN KEY (id_arquivo) REFERENCES storage.objects(id) ON DELETE CASCADE
+	, CONSTRAINT fk_storage_objects_download_leiaute FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id_leiaute_arquivo)
+);
+
