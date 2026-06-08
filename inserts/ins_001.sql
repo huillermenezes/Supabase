@@ -21,7 +21,7 @@ INSERT INTO public.leiaute_campo_arquivo (
 )
 VALUES
 		-- HEADER ARQUIVO
-	('codigo do banco na compensacao', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 1, 3, 1, NULL, TRUE, '237')
+	('codigo do banco na compensacao', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 1, 3, 1, NULL, FALSE, '237')
 	, ('lote de servico', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 4, 4, 1, NULL, FALSE, '0000')
 	, ('tipo de registro', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 8, 1, 1, NULL, FALSE, '0')
 	, ('uso exclusivo febraban', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 9, 9, 2, NULL, FALSE, '         ')
@@ -46,6 +46,7 @@ VALUES
 	, ('para uso reservado da empresa', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 192, 20, 2, NULL, FALSE, '                    ')
 	, ('uso exclusivo febraban', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1, 212, 29, 2, NULL, FALSE, '                             ');
 		--HEADER LOTE
+		/*
 	('codigo do banco na compensacao', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 1, 3, 1, NULL, FALSE, '237')
 	, ('lote de servico', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 4, 4, 1, NULL, FALSE, NULL)
 	, ('tipo de registro', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 8, 1, 1, NULL, FALSE, '1')
@@ -69,11 +70,15 @@ VALUES
 --	, ('densidade de gravacao do arquivo', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 167, 5, 1, 3, FALSE, NULL)
 --	, ('para uso reservado do banco', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 172, 20, 2, NULL, FALSE, '                    ')
 --	, ('para uso reservado da empresa', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 192, 20, 2, NULL, FALSE, '                    ')
---	, ('uso exclusivo febraban', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 212, 29, 2, NULL, FALSE, '                             ');
+--	, ('uso exclusivo febraban', (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 2, 212, 29, 2, NULL, FALSE, '                             ');*/
 
-	
+INSERT INTO parametro_leiaute_arquivo(
+	id_leiaute_arquivo
+	, codigo
+) VALUES
+	((SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'folha_pagamento_bradesco_240_posicoes' AND tipo_arquivo = 1 LIMIT 1), 1);
 
-INSERT INTO public.leiaute_arquivo (denominacao, tipo_arquivo, quantidade_caracteres, extensao_arquivo, versao_leiaute)
+/*INSERT INTO public.leiaute_arquivo (denominacao, tipo_arquivo, quantidade_caracteres, extensao_arquivo, versao_leiaute)
 VALUES
 	('folha_pagamento_240_posicoes', 1, 240, 2, '')
 	, ('cobranca', 1, 400, 2, '')
@@ -148,3 +153,49 @@ VALUES
 	, (3, 1, 192, 020, 2, 'para uso reservado da empresa -- g022', FALSE)
 	, (3, 1, 212, 029, 2, 'uso exclusivo febraban -- brancos g004', FALSE);
 
+*/
+
+
+INSERT INTO public.leiaute_arquivo (
+	denominacao
+	, tipo_arquivo
+	, quantidade_caracteres
+	, extensao_arquivo
+	, versao_leiaute
+)VALUES
+	('cobranca_remessa', 1, 400, 2, 'V 2.37 Fev/2026');
+
+INSERT INTO public.leiaute_campo_arquivo (
+	denominacao
+	, id_leiaute_arquivo
+	, tipo_campo -- 1 = Header Arquivo, 2 = Header Lote, 3 = Movimento, 4 = Trailer Lote, 5 = Trailer Arquivo
+	, posicao_inicial
+	, tamanho
+	, tipo_valor -- 1 = numerico, 2 = texto
+	, preenchimento -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
+	, campo_identificacao
+	, valor_padrao
+) VALUES
+	('Código do Registro', 1, 1, 001, 001, 1, NULL, FALSE, '0')
+	, ('Código da Remessa', 1, 1, 002, 001, 1, NULL, FALSE, '1')
+	, ('Literal de Transmissão', 1, 1, 003, 007, 2, NULL, FALSE, 'REMESSA')
+	, ('Código do Tipo Serviço ', 1, 1, 010, 002, 1, NULL, FALSE, '01')
+	, ('Literal de Serviço', 1, 1, 012, 015, 2, NULL, FALSE, 'COBRANCA       ')
+	, ('Código de Transmissão', 1, 1, 027, 020, 1, 4, TRUE, NULL)
+	, ('Nome do Beneficiário', 1, 1, 047, 030, 2, 2, FALSE, NULL)
+	, ('Código do Banco', 1, 1, 077, 003, 1, NULL, FALSE, '033')
+	, ('Nome do Banco', 1, 1, 080, 015, 2, NULL, FALSE, 'BANCO SANTANDER')
+	, ('Data da Gravação do Arquivo', 1, 1, 095, 006, 1, NULL, FALSE, NULL)
+	, ('Reservado (uso Banco) ', 1, 1, 101, 016, 1, NULL, FALSE, '0000000000000000')
+	, ('Mensagem 1', 1, 1, 117, 047, 2, 2, FALSE, NULL)
+	, ('Mensagem 2', 1, 1, 164, 047, 2, 2, FALSE, NULL)
+	, ('Mensagem 3', 1, 1, 211, 047, 2, 2, FALSE, NULL)
+	, ('Mensagem 4', 1, 1, 258, 047, 2, 2, FALSE, NULL)
+	, ('Mensagem 5', 1, 1, 305, 047, 2, 2, FALSE, NULL)
+	, ('Reservado (uso Banco)', 1, 1, 352, 034, 2, 2, FALSE, NULL)
+	, ('Reservado (uso Banco)', 1, 1, 386, 006, 2, 2, FALSE, NULL)
+	, ('Nº sequencial do arquivo', 1, 1, 392, 003, 1, NULL, FALSE, NULL)
+	, ('Nº sequencial do registro no arquivo ', 1, 1, 395, 006, 1, 3, FALSE, '000001');
+
+
+	01REMESSA01COBRANCA       30670054971201300421POSTO DU FIGUEIREDO II LTDA   033BANCO SANTANDER0508250000000000000000                                                                                                                                                                                                                                                                                   093000001

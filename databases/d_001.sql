@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS public.leiaute_campo_arquivo (
 	, posicao_inicial							BIGINT NOT NULL
 	, tamanho									BIGINT NOT NULL
 	, tipo_valor								BIGINT NOT NULL -- 1 = numerico, 2 = texto
-	, preenchimento							BIGINT NOT NULL -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
+	, preenchimento							BIGINT NULL -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
 	, formato_campo							TEXT NULL
 	, campo_identificacao					BOOLEAN NOT NULL DEFAULT FALSE
 	, valor_padrao								TEXT NULL
@@ -153,3 +153,39 @@ LOOP
    WHERE ra.conteudo_jsonb ->> lista_id_leiaute_arquivo = I.id_leiaute_arquivo
 
 END LOOP;
+
+
+
+
+
+
+
+
+
+
+
+
+		SELECT
+			ra.id_registro_arquivo
+			, ra.id_arquivo
+			, ra.nome_arquivo
+			, o.name AS caminho_origem
+			, REPLACE(
+				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
+				, '/object/authenticated/', '/object/move'
+			) AS url_move
+			, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
+			, (
+				SELECT	ARRAY_AGG(DISTINCT pla.id_parametro_leiaute_arquivo) lista_id_parametro_leiaute_arquivo
+				FROM	parametro_leiaute_arquivo pla
+					INNER leiaute_campo_arquivo lca ON (lca.id_leiaute_arquivo = pla.id_leiaute_arquivo)
+				WHERE	lca.id_leiaute_arquivo = ANY(CAST(ra.conteudo_jsonb -> 'lista_id_leiaute_arquivo' AS BIGINT[]))
+				AND lca.tipo_campo = 1 -- Header Arquivo
+				AND lca.campo_identificacao
+				AND pla.codigo = SUBSTRING(ra.linha_arquivo, lca.posicao_inicial, lca.tamanho)
+			)
+		FROM public.registro_arquivo ra
+			INNER JOIN storage.objects o ON CAST(o.metadata ->> 'id' AS BIGINT) = ra.id_arquivo
+		WHERE ra.numero_linha = 1
+		AND ra.mensagem_erro IS NULL   -- sem erro registrado
+		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho

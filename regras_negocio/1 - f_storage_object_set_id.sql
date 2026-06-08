@@ -9,8 +9,7 @@ BEGIN
 	WITH sub_storage_object AS (
 		SELECT  
 			o.id
-			, o.metadata 
-			  || jsonb_build_object('id', NEXTVAL('public.seq_pkey')) AS metadata
+			, jsonb_concat(o.metadata, jsonb_build_object('id', NEXTVAL('public.seq_pkey'))) AS metadata
 		FROM    storage.objects o
 		WHERE   o.bucket_id = 'hetzner_files'
 		  AND SPLIT_PART(o.name, '/', 1) = 'input'

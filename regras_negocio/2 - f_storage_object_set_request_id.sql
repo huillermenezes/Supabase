@@ -17,14 +17,16 @@ BEGIN
 	WITH sub_storage_object AS (
 		SELECT  
 			o.id
-			, o.metadata 
-			  || jsonb_build_object(
-				  'request_id', 
-				  net.http_get(
-					  url := CONCAT(VVariavelGenerica.url_storage, 'hetzner_files/', o.name),
-					  headers := jsonb_build_object('apikey', VVariavelGenerica.auth_key)
-				  )
-			  ) AS metadata
+			, jsonb_concat(
+				o.metadata,
+				jsonb_build_object(
+					'request_id', 
+					net.http_get(
+						url := CONCAT(VVariavelGenerica.url_storage, 'hetzner_files/', o.name),
+						headers := jsonb_build_object('apikey', VVariavelGenerica.auth_key)
+					)
+				)
+			) AS metadata
 		FROM    storage.objects o
 		WHERE   o.bucket_id = 'hetzner_files'
 		  AND SPLIT_PART(o.name, '/', 1) = 'input'
