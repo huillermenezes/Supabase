@@ -175,27 +175,113 @@ INSERT INTO public.leiaute_campo_arquivo (
 	, preenchimento -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
 	, campo_identificacao
 	, valor_padrao
+	, expressao_valor
+	, nome_coluna
 ) VALUES
-	('Código do Registro', 1, 1, 001, 001, 1, NULL, FALSE, '0')
-	, ('Código da Remessa', 1, 1, 002, 001, 1, NULL, FALSE, '1')
-	, ('Literal de Transmissão', 1, 1, 003, 007, 2, NULL, FALSE, 'REMESSA')
-	, ('Código do Tipo Serviço ', 1, 1, 010, 002, 1, NULL, FALSE, '01')
-	, ('Literal de Serviço', 1, 1, 012, 015, 2, NULL, FALSE, 'COBRANCA       ')
-	, ('Código de Transmissão', 1, 1, 027, 020, 1, 4, TRUE, NULL)
-	, ('Nome do Beneficiário', 1, 1, 047, 030, 2, 2, FALSE, NULL)
-	, ('Código do Banco', 1, 1, 077, 003, 1, NULL, FALSE, '033')
-	, ('Nome do Banco', 1, 1, 080, 015, 2, NULL, FALSE, 'BANCO SANTANDER')
-	, ('Data da Gravação do Arquivo', 1, 1, 095, 006, 1, NULL, FALSE, NULL)
-	, ('Reservado (uso Banco) ', 1, 1, 101, 016, 1, NULL, FALSE, '0000000000000000')
-	, ('Mensagem 1', 1, 1, 117, 047, 2, 2, FALSE, NULL)
-	, ('Mensagem 2', 1, 1, 164, 047, 2, 2, FALSE, NULL)
-	, ('Mensagem 3', 1, 1, 211, 047, 2, 2, FALSE, NULL)
-	, ('Mensagem 4', 1, 1, 258, 047, 2, 2, FALSE, NULL)
-	, ('Mensagem 5', 1, 1, 305, 047, 2, 2, FALSE, NULL)
-	, ('Reservado (uso Banco)', 1, 1, 352, 034, 2, 2, FALSE, NULL)
-	, ('Reservado (uso Banco)', 1, 1, 386, 006, 2, 2, FALSE, NULL)
-	, ('Nº sequencial do arquivo', 1, 1, 392, 003, 1, NULL, FALSE, NULL)
-	, ('Nº sequencial do registro no arquivo ', 1, 1, 395, 006, 1, 3, FALSE, '000001');
+	('Código do Registro', 1, 1, 001, 001, 1, NULL, FALSE, '0', NULL, 'codigo_registro')
+	, ('Código da Remessa', 1, 1, 002, 001, 1, NULL, FALSE, '1', NULL, 'codigo_remessa')
+	, ('Literal de Transmissão', 1, 1, 003, 007, 2, NULL, FALSE, 'REMESSA', NULL, 'literal_transmissao')
+	, ('Código do Tipo Serviço ', 1, 1, 010, 002, 1, NULL, FALSE, '01', NULL, 'codigo_tipo_servico')
+	, ('Literal de Serviço', 1, 1, 012, 015, 2, NULL, FALSE, 'COBRANCA       ', NULL, 'literal_servico')
+	, ('Código de Transmissão', 1, 1, 027, 020, 1, 4, TRUE, NULL, NULL, 'codigo_transmissao')
+	, ('Nome do Beneficiário', 1, 1, 047, 030, 2, 2, FALSE, NULL, NULL, 'nome_beneficiario')
+	, ('Código do Banco', 1, 1, 077, 003, 1, NULL, FALSE, '033', NULL, 'codigo_banco')
+	, ('Nome do Banco', 1, 1, 080, 015, 2, NULL, FALSE, 'BANCO SANTANDER', NULL, 'nome_banco')
+	, ('Data da Gravação do Arquivo', 1, 1, 095, 006, 1, NULL, FALSE, NULL, NULL, 'data_geracao_arquivo')
+	, ('Reservado (uso Banco) ', 1, 1, 101, 016, 1, NULL, FALSE, '0000000000000000', NULL, 'reservado_banco_1')
+	, ('Mensagem 1', 1, 1, 117, 047, 2, 2, FALSE, NULL, NULL, 'mensagem_1')
+	, ('Mensagem 2', 1, 1, 164, 047, 2, 2, FALSE, NULL, NULL, 'mensagem_2')
+	, ('Mensagem 3', 1, 1, 211, 047, 2, 2, FALSE, NULL, NULL, 'mensagem_3')
+	, ('Mensagem 4', 1, 1, 258, 047, 2, 2, FALSE, NULL, NULL, 'mensagem_4')
+	, ('Mensagem 5', 1, 1, 305, 047, 2, 2, FALSE, NULL, NULL, 'mensagem_5')
+	, ('Reservado (uso Banco)', 1, 1, 352, 034, 2, 2, FALSE, NULL, NULL, 'reservado_banco_2')
+	, ('Reservado (uso Banco)', 1, 1, 386, 006, 2, 2, FALSE, NULL, NULL, 'reservado_banco_3')
+	, ('Nº sequencial do arquivo', 1, 1, 392, 003, 1, NULL, FALSE, NULL, NULL, 'numero_sequencial_arquivo')
+	, ('Nº sequencial do registro no arquivo ', 1, 1, 395, 006, 1, 3, FALSE, '000001', NULL, 'numero_sequencial_registro');
+
+INSERT INTO public.leiaute_campo_arquivo (
+	denominacao
+	, id_leiaute_arquivo
+	, tipo_campo -- 1 = Header Arquivo, 2 = Header Lote, 3 = Movimento, 4 = Trailer Lote, 5 = Trailer Arquivo
+	, posicao_inicial
+	, tamanho
+	, tipo_valor -- 1 = numerico, 2 = texto
+	, preenchimento -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
+	, campo_identificacao
+	, valor_padrao
+	, expressao_valor
+	, nome_coluna
+) VALUES
+	('Código do Registro', 1, 3, 1, 1, 1, NULL, FALSE, '1', NULL, 'codigo_registro')
+	, ('Tipo de inscrição do beneficiário', 1, 3, 2, 2, 1, NULL, FALSE, NULL, NULL, 'tipo_inscricao_beneficiario')
+	, ('Inscrição do beneficiário', 1, 3, 4, 14, 2, NULL, FALSE, NULL, NULL, 'inscricao_beneficiario')
+	, ('Código da agência beneficiária', 1, 3, 18, 4, 1, NULL, FALSE, NULL, NULL, 'codigo_agencia_beneficiaria')
+	, ('Conta movimento beneficiário', 1, 3, 22, 8, 1, NULL, FALSE, NULL, NULL, 'conta_movimento_beneficiario')
+	, ('Conta cobrança beneficiário', 1, 3, 30, 8, 1, NULL, FALSE, NULL, NULL, 'conta_cobranca_beneficiario')
+	, ('Identificação do boleto na empresa', 1, 3, 38, 25, 2, NULL, FALSE, NULL, NULL, 'identificacao_boleto_empresa')
+	, ('Identificação do boleto no banco', 1, 3, 63, 8, 1, NULL, FALSE, NULL, NULL, 'nosso_numero')
+	, ('Data do desconto 2', 1, 3, 71, 6, 1, NULL, FALSE, NULL, NULL, 'data_desconto_2')
+	, ('Reservado (uso banco)', 1, 3, 77, 1, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_1')
+	, ('Código de Multa', 1, 3, 78, 1, 1, NULL, FALSE, NULL, NULL, 'codigo_multa')
+	, ('Percentual de Multa', 1, 3, 79, 4, 1, NULL, FALSE, NULL, NULL, 'percentual_multa')
+	, ('Código da Moeda', 1, 3, 83, 2, 1, NULL, FALSE, '00', NULL, 'codigo_moeda')
+	, ('Valor do boleto em outra unidade', 1, 3, 85, 13, 1, NULL, FALSE, NULL, NULL, 'valor_boleto_outra_unidade')
+	, ('Reservado (uso banco)', 1, 3, 98, 4, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_2')
+	, ('Data da Multa', 1, 3, 102, 6, 1, NULL, FALSE, NULL, NULL, 'data_multa')
+	, ('Tipo de Cobrança', 1, 3, 108, 1, 1, NULL, FALSE, NULL, NULL, 'tipo_cobranca')
+	, ('Código de movimento remessa', 1, 3, 109, 2, 1, NULL, FALSE, NULL, NULL, 'codigo_movimento_remessa')
+	, ('Nº do documento', 1, 3, 111, 10, 2, NULL, FALSE, NULL, NULL, 'numero_documento')
+	, ('Data de vencimento do boleto', 1, 3, 121, 6, 1, NULL, FALSE, NULL, NULL, 'data_vencimento_boleto')
+	, ('Valor nominal do boleto', 1, 3, 127, 13, 1, NULL, FALSE, NULL, NULL, 'valor_nominal_boleto')
+	, ('Número do banco cobrador', 1, 3, 140, 3, 1, NULL, FALSE, '033', NULL, 'numero_banco_cobrador')
+	, ('Código agência Cobradora', 1, 3, 143, 5, 1, NULL, FALSE, NULL, NULL, 'codigo_agencia_cobradora')
+	, ('Espécie do boleto', 1, 3, 148, 2, 1, NULL, FALSE, NULL, NULL, 'especie_boleto')
+	, ('Identificação boleto aceite / não aceite', 1, 3, 150, 1, 2, NULL, FALSE, NULL, NULL, 'identificacao_boleto_aceite')
+	, ('Data de emissão do boleto', 1, 3, 151, 6, 1, NULL, FALSE, NULL, NULL, 'data_emissao_boleto')
+	, ('Primeira instrução', 1, 3, 157, 2, 1, NULL, FALSE, NULL, NULL, 'primeira_instrucao')
+	, ('Segunda instrução', 1, 3, 159, 2, 1, NULL, FALSE, NULL, NULL, 'segunda_instrucao')
+	, ('Valor de Mora dia', 1, 3, 161, 13, 1, NULL, FALSE, NULL, NULL, 'valor_mora_dia')
+	, ('Data Limite para concessão do desconto', 1, 3, 174, 6, 1, NULL, FALSE, NULL, NULL, 'data_limite_desconto')
+	, ('Valor do desconto a ser concedido', 1, 3, 180, 13, 1, NULL, FALSE, NULL, NULL, 'valor_desconto')
+	, ('Percentual do IOF a ser recolhido', 1, 3, 193, 13, 1, NULL, FALSE, NULL, NULL, 'percentual_iof')
+	, ('Valor do abatimento ou Valor do segundo desconto', 1, 3, 206, 13, 1, NULL, FALSE, NULL, NULL, 'valor_abatimento')
+	, ('Tipo de inscrição do Pagador', 1, 3, 219, 2, 1, NULL, FALSE, NULL, NULL, 'tipo_inscricao_pagador')
+	, ('Inscrição do Pagador', 1, 3, 221, 14, 2, NULL, FALSE, NULL, NULL, 'inscricao_pagador')
+	, ('Nome do Pagador', 1, 3, 235, 40, 2, NULL, FALSE, NULL, NULL, 'nome_pagador')
+	, ('Endereço do Pagador', 1, 3, 275, 40, 2, NULL, FALSE, NULL, NULL, 'endereco_pagador')
+	, ('Bairro do Pagador', 1, 3, 315, 12, 2, NULL, FALSE, NULL, NULL, 'bairro_pagador')
+	, ('Cep do Pagador', 1, 3, 327, 5, 1, NULL, FALSE, NULL, NULL, 'cep_pagador')
+	, ('Sufixo do Cep do Pagador', 1, 3, 332, 3, 1, NULL, FALSE, NULL, NULL, 'sufixo_cep_pagador')
+	, ('Cidade do Pagador', 1, 3, 335, 15, 2, NULL, FALSE, NULL, NULL, 'cidade_pagador')
+	, ('Unidade de Federação do Pagador', 1, 3, 350, 2, 2, NULL, FALSE, NULL, NULL, 'uf_pagador')
+	, ('Reservado (uso banco)', 1, 3, 352, 30, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_3')
+	, ('Reservado (uso banco)', 1, 3, 382, 1, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_4')
+	, ('Identificador do complemento', 1, 3, 383, 1, 2, NULL, FALSE, NULL, NULL, 'identificador_complemento')
+	, ('Complemento', 1, 3, 384, 2, 1, NULL, FALSE, NULL, NULL, 'complemento')
+	, ('Reservado (uso banco)', 1, 3, 386, 6, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_5')
+	, ('Número de dias corridos para Protesto', 1, 3, 392, 2, 1, NULL, FALSE, NULL, NULL, 'numero_dias_protesto')
+	, ('Reservado (uso banco)', 1, 3, 394, 1, 2, NULL, FALSE, NULL, NULL, 'reservado_banco_6')
+	, ('Número sequencial do registro no arquivo', 1, 3, 395, 6, 1, 3, FALSE, NULL, NULL, 'numero_sequencial_registro');
+
+INSERT INTO public.leiaute_campo_arquivo (
+	denominacao
+	, id_leiaute_arquivo
+	, tipo_campo -- 5 = Trailer Arquivo
+	, posicao_inicial
+	, tamanho
+	, tipo_valor -- 1 = numerico, 2 = texto
+	, preenchimento -- 1 = brancos a esquerda, 2 = brancos a direita, 3 = zeros a esquerda, 4 = zeros a direita
+	, campo_identificacao
+	, valor_padrao
+	, expressao_valor
+	, nome_coluna
+) VALUES
+	('Código do Registro', 1, 5, 1, 1, 1, NULL, FALSE, '9', NULL, 'codigo_registro')
+	, ('Quantidade de registros', 1, 5, 2, 6, 1, NULL, FALSE, NULL, NULL, 'quantidade_registros')
+	, ('Valor Total dos boletos', 1, 5, 8, 13, 1, NULL, FALSE, NULL, NULL, 'valor_total_boletos')
+	, ('Reservado (uso banco)', 1, 5, 21, 374, 1, NULL, FALSE, NULL, NULL, 'reservado_banco')
+	, ('Número sequencial de registro no arquivo', 1, 5, 395, 6, 1, 3, FALSE, NULL, NULL, 'numero_sequencial_registro');
 
 
-	01REMESSA01COBRANCA       30670054971201300421POSTO DU FIGUEIREDO II LTDA   033BANCO SANTANDER0508250000000000000000                                                                                                                                                                                                                                                                                   093000001
+
+-- 01REMESSA01COBRANCA       30670054971201300421POSTO DU FIGUEIREDO II LTDA   033BANCO SANTANDER0508250000000000000000                                                                                                                                                                                                                                                                                   093000001

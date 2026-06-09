@@ -1,6 +1,6 @@
-DROP FUNCTION IF EXISTS public.f_leiaute_arquivo_validacao_constante() CASCADE;
+DROP FUNCTION IF EXISTS public.f_registro_arquivo_set_id_leiaute_arquivo() CASCADE;
 
-CREATE OR REPLACE FUNCTION public.f_leiaute_arquivo_validacao_constante()
+CREATE OR REPLACE FUNCTION public.f_registro_arquivo_set_id_leiaute_arquivo()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -40,7 +40,7 @@ BEGIN
 				)
 			) AS lista_leiaute_constante
 		FROM public.registro_arquivo ra
-			INNER JOIN storage.objects o ON CAST(o.metadata ->> 'id' AS BIGINT) = ra.id_arquivo
+			INNER JOIN storage.objects o ON o.name IN (CONCAT('processamento/', ra.nome_arquivo), CONCAT('input/', ra.nome_arquivo)) AND o.bucket_id = 'hetzner_files'
 		WHERE ra.numero_linha = 1
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
@@ -56,7 +56,7 @@ BEGIN
 				metadata,
 				jsonb_build_object('mensagem_erro', 'Nenhum leiaute identificado pelos campos constantes do header.')
 			)
-			WHERE CAST(metadata ->> 'id' AS BIGINT) = VRecord.id_arquivo;
+			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
 
 			PERFORM net.http_post(
 				url := VRecord.url_move
@@ -83,7 +83,7 @@ BEGIN
 				metadata,
 				jsonb_build_object('mensagem_erro', 'Multiplos leiautes identificados pelos campos constantes do header.')
 			)
-			WHERE CAST(metadata ->> 'id' AS BIGINT) = VRecord.id_arquivo;
+			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
 
 			PERFORM net.http_post(
 				url := VRecord.url_move

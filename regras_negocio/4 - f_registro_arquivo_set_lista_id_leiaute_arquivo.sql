@@ -42,7 +42,7 @@ BEGIN
 				-- adicionar extensão do arquivo..
 			) AS lista_id_leiaute_arquivo
 		FROM public.registro_arquivo ra
-			INNER JOIN storage.objects o ON (CAST(o.metadata ->> 'id' AS BIGINT) = ra.id_arquivo)
+			INNER JOIN storage.objects o ON o.name IN (CONCAT('processamento/', ra.nome_arquivo), CONCAT('input/', ra.nome_arquivo)) AND o.bucket_id = 'hetzner_files'
 		WHERE ra.numero_linha = 1
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND ra.conteudo_jsonb IS NULL  -- ainda não processado
@@ -60,7 +60,7 @@ BEGIN
 				metadata,
 				jsonb_build_object('mensagem_erro', CONCAT('Nenhum leiaute encontrado para tamanho ', VRecord.tamanho_linha, '.'))
 			)
-			WHERE CAST(metadata ->> 'id' AS BIGINT) = VRecord.id_arquivo;
+			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
 
 			PERFORM net.http_post(
 				url := VRecord.url_move
