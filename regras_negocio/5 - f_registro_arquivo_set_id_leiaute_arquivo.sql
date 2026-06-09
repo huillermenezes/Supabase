@@ -44,6 +44,7 @@ BEGIN
 		WHERE ra.numero_linha = 1
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
+		LIMIT 30
 	LOOP
 		IF COALESCE(CARDINALITY(VRecord.lista_leiaute_constante), 0) = 0 THEN
 			UPDATE public.registro_arquivo

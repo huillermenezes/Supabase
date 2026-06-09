@@ -1,3 +1,7 @@
+-- =================================================================================
+-- ESTRUTURA DO BANCO DE DADOS (SCHEMAS)
+-- =================================================================================
+
 DROP TABLE IF EXISTS public.registro_arquivo CASCADE;
 DROP TABLE IF EXISTS public.storage_objects_download CASCADE;
 DROP TABLE IF EXISTS public.header_arquivo CASCADE;
@@ -47,6 +51,7 @@ CREATE TABLE IF NOT EXISTS public.leiaute_campo_arquivo (
 	, nome_coluna								TEXT NULL
 	, CONSTRAINT pk_leiaute_campo_arquivo PRIMARY KEY (id)
 	, CONSTRAINT fk_leiaute_campo_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
+	, CONSTRAINT uq_leiaute_campo_arquivo_nome_coluna UNIQUE (id_leiaute_arquivo, tipo_campo, nome_coluna)
 );
 
 CREATE TABLE IF NOT EXISTS public.parametro_leiaute_arquivo (
@@ -58,10 +63,10 @@ CREATE TABLE IF NOT EXISTS public.parametro_leiaute_arquivo (
 	, CONSTRAINT fk_parametro_leiaute_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
 
-
 CREATE TABLE IF NOT EXISTS public.header_arquivo (
 	id											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
 	, id_arquivo								BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
 	, id_leiaute_arquivo						BIGINT NOT NULL
 	, tipo_campo								BIGINT NOT NULL
 	, codigo_registro							TEXT
@@ -70,6 +75,11 @@ CREATE TABLE IF NOT EXISTS public.header_arquivo (
 	, codigo_tipo_servico					TEXT
 	, literal_servico							TEXT
 	, codigo_transmissao						TEXT
+	, codigo_agencia_beneficiaria			TEXT
+	, conta_movimento_beneficiario		TEXT
+	, conta_cobranca_beneficiario			TEXT
+	, codigo_beneficiario					TEXT
+	, sigla_empresa_sistema					TEXT
 	, nome_beneficiario						TEXT
 	, codigo_banco								TEXT
 	, nome_banco								TEXT
@@ -88,24 +98,13 @@ CREATE TABLE IF NOT EXISTS public.header_arquivo (
 	, CONSTRAINT fk_header_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
 
-/*
-CREATE TABLE IF NOT EXISTS public.header_lote(
-	id_header_lote								BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
-	, id_arquivo								UUID NOT NULL
-	, id_arquivo_layout						BIGINT NOT NULL
-	, id_empresa								BIGINT NOT NULL
-	, CONSTRAINT pk_header_lote PRIMARY KEY (id_header_lote)
-	, CONSTRAINT fk_header_lote_leiaute_arquivo FOREIGN KEY (id_arquivo_layout) REFERENCES public.leiaute_arquivo(id)
-);
-*/
-
 CREATE TABLE IF NOT EXISTS public.movimento_arquivo (
 	id											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
 	, id_arquivo								BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
 	, id_leiaute_arquivo						BIGINT NOT NULL
 	, tipo_campo								BIGINT NOT NULL
 	, numero_linha								BIGINT NOT NULL
-	-- campos do movimento
 	, codigo_registro							TEXT
 	, tipo_inscricao_beneficiario			TEXT
 	, inscricao_beneficiario				TEXT
@@ -155,25 +154,36 @@ CREATE TABLE IF NOT EXISTS public.movimento_arquivo (
 	, reservado_banco_5						TEXT
 	, numero_dias_protesto					TEXT
 	, reservado_banco_6						TEXT
+	, codigo_movimento_retorno				TEXT
+	, data_ocorrencia							TEXT
+	, nosso_numero_banco						TEXT
+	, codigo_original_remessa				TEXT
+	, codigo_erro_ocorrencia_1				TEXT
+	, codigo_erro_ocorrencia_2				TEXT
+	, codigo_erro_ocorrencia_3				TEXT
+	, codigo_agencia_recebedora			TEXT
+	, valor_tarifa_cobrada					TEXT
+	, valor_outras_despesas					TEXT
+	, valor_juros_atraso						TEXT
+	, valor_iof_recolhido					TEXT
+	, valor_total_recebido					TEXT
+	, valor_juros_mora						TEXT
+	, valor_outros_creditos					TEXT
+	, data_efetivacao_credito				TEXT
+	, valor_iof_outra_unidade				TEXT
+	, valor_debito_credito					TEXT
+	, identificacao_lancamento				TEXT
+	, sigla_empresa_sistema					TEXT
+	, numero_sequencial_arquivo			TEXT
 	, numero_sequencial_registro			TEXT
 	, CONSTRAINT pk_movimento_arquivo PRIMARY KEY (id)
 	, CONSTRAINT fk_movimento_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
 
-/*
-CREATE TABLE IF NOT EXISTS public.trailer_lote(
-	id_trailer_lote							BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
-	, id_arquivo								UUID NOT NULL
-	, id_arquivo_layout						BIGINT NOT NULL
-	, id_empresa								BIGINT NOT NULL
-	, CONSTRAINT pk_trailer_lote PRIMARY KEY (id_trailer_lote)
-	, CONSTRAINT fk_trailer_lote_leiaute_arquivo FOREIGN KEY (id_arquivo_layout) REFERENCES public.leiaute_arquivo(id)
-);
-*/
-
 CREATE TABLE IF NOT EXISTS public.trailer_arquivo(
 	id											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
 	, id_arquivo								BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
 	, id_leiaute_arquivo						BIGINT NOT NULL
 	, tipo_campo								BIGINT NOT NULL
 	, numero_linha								BIGINT NOT NULL
@@ -181,6 +191,23 @@ CREATE TABLE IF NOT EXISTS public.trailer_arquivo(
 	, quantidade_registros					TEXT
 	, valor_total_boletos					TEXT
 	, reservado_banco							TEXT
+	, codigo_remessa							TEXT
+	, codigo_tipo_servico					TEXT
+	, codigo_banco								TEXT
+	, quantidade_registros_simples		TEXT
+	, valor_total_boletos_simples			TEXT
+	, numero_aviso_cobranca_simples		TEXT
+	, quantidade_registros_caucionada	TEXT
+	, valor_total_boletos_caucionada		TEXT
+	, numero_aviso_cobranca_caucionada	TEXT
+	, quantidade_registros_descontada	TEXT
+	, valor_total_boletos_descontada		TEXT
+	, numero_aviso_cobranca_descontada	TEXT
+	, numero_sequencial_arquivo			TEXT
+	, reservado_banco_1						TEXT
+	, reservado_banco_2						TEXT
+	, reservado_banco_3						TEXT
+	, reservado_banco_4						TEXT
 	, numero_sequencial_registro			TEXT
 	, CONSTRAINT pk_trailer_arquivo PRIMARY KEY (id)
 	, CONSTRAINT fk_trailer_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
@@ -189,7 +216,29 @@ CREATE TABLE IF NOT EXISTS public.trailer_arquivo(
 
 
 
+-- =================================================================================
+-- LEGACY / RASGUNHOS E EXEMPLOS DE CÓDIGO COMENTADOS
+-- =================================================================================
+
 /*
+CREATE TABLE IF NOT EXISTS public.header_lote(
+	id_header_lote								BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo								UUID NOT NULL
+	, id_arquivo_layout						BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
+	, CONSTRAINT pk_header_lote PRIMARY KEY (id_header_lote)
+	, CONSTRAINT fk_header_lote_leiaute_arquivo FOREIGN KEY (id_arquivo_layout) REFERENCES public.leiaute_arquivo(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.trailer_lote(
+	id_trailer_lote							BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo								UUID NOT NULL
+	, id_arquivo_layout						BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
+	, CONSTRAINT pk_trailer_lote PRIMARY KEY (id_trailer_lote)
+	, CONSTRAINT fk_trailer_lote_leiaute_arquivo FOREIGN KEY (id_arquivo_layout) REFERENCES public.leiaute_arquivo(id)
+);
+
 CREATE SEQUENCE IF NOT EXISTS public.seq_pkey START WITH 1;
 
 WITH sub_storage_object AS (
@@ -226,8 +275,6 @@ LOOP
 END LOOP;
 
 
-
-
 		SELECT
 			ra.id_registro_arquivo
 			, ra.id_arquivo
@@ -253,4 +300,4 @@ END LOOP;
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
 
-		*/
+*/

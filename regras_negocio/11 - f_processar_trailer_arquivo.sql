@@ -8,6 +8,7 @@ AS $$
 DECLARE
 	V_id_arquivo BIGINT;
 	VLeiauteID BIGINT;
+	V_id_empresa BIGINT;
 	V_colunas TEXT;
 	V_select TEXT;
 	V_sql TEXT;
@@ -15,29 +16,38 @@ DECLARE
 	V_nome_arquivo TEXT;
 	V_url_move TEXT;
 	V_auth_key TEXT;
+	VRecord RECORD;
 BEGIN
-	-- 1. Obtém um arquivo pendente de processamento de trailer (com header e movimento já processados)
-	SELECT DISTINCT ra_h.id_arquivo, CAST(ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' AS BIGINT)
-	INTO V_id_arquivo, VLeiauteID
-	FROM public.registro_arquivo ra_h
-	WHERE ra_h.numero_linha = 1
-	  AND ra_h.mensagem_erro IS NULL
-	  AND ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' IS NOT NULL
-	  -- O header do arquivo já deve estar processado
-	  AND EXISTS (
-		  SELECT 1 FROM public.header_arquivo ha WHERE ha.id_arquivo = ra_h.id_arquivo
-	  )
-	  -- Os movimentos já devem estar processados
-	  AND EXISTS (
-		  SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra_h.id_arquivo
-	  )
-	  -- O trailer ainda não deve estar processado
-	  AND NOT EXISTS (
-		  SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo
-	  )
-	LIMIT 1;
+	-- 1. Obtém arquivos pendentes de processamento de trailer (com header e movimento já processados), limitando a 30 por vez
+	FOR VRecord IN
+		SELECT DISTINCT 
+			ra_h.id_arquivo, 
+			CAST(ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' AS BIGINT) AS id_leiaute_arquivo,
+			pla.id_empresa
+		FROM public.registro_arquivo ra_h
+		LEFT JOIN public.parametro_leiaute_arquivo pla 
+			ON pla.id = CAST(ra_h.conteudo_jsonb ->> 'id_parametro_leiaute_arquivo' AS BIGINT)
+		WHERE ra_h.numero_linha = 1
+		  AND ra_h.mensagem_erro IS NULL
+		  AND ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' IS NOT NULL
+		  -- O header do arquivo já deve estar processado
+		  AND EXISTS (
+			  SELECT 1 FROM public.header_arquivo ha WHERE ha.id_arquivo = ra_h.id_arquivo
+		  )
+		  -- Os movimentos já devem estar processados
+		  AND EXISTS (
+			  SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  -- O trailer ainda não deve estar processado
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo
+		  )
+		LIMIT 30
+	LOOP
+		V_id_arquivo := VRecord.id_arquivo;
+		VLeiauteID := VRecord.id_leiaute_arquivo;
+		V_id_empresa := VRecord.id_empresa;
 
-	IF V_id_arquivo IS NOT NULL AND VLeiauteID IS NOT NULL THEN
 		-- 2. Atualiza o conteudo_jsonb da linha do trailer (linhas > 1) com os campos extraídos
 		WITH trailer_json AS (
 			SELECT 
@@ -45,7 +55,7 @@ BEGIN
 				, jsonb_object_agg(
 					lca.nome_coluna, 
 					SUBSTRING(ra.linha_arquivo, lca.posicao_inicial::INTEGER, lca.tamanho::INTEGER)
-				) AS parsed_fields
+				) || jsonb_build_object('_is_trailer', true) AS parsed_fields
 			FROM public.registro_arquivo ra
 			INNER JOIN public.leiaute_campo_arquivo lca 
 				ON lca.id_leiaute_arquivo = VLeiauteID
@@ -82,8 +92,8 @@ BEGIN
 
 		-- 3. Monta a query dinâmica e executa a inserção do trailer
 		SELECT 
-			'id_arquivo, id_leiaute_arquivo, tipo_campo, numero_linha, ' || string_agg(quote_ident(lca.nome_coluna), ', ') AS colunas,
-			'ra.id_arquivo, ' || VLeiauteID || ', 5, ra.numero_linha, ' || string_agg('jpr.' || quote_ident(lca.nome_coluna), ', ') AS select_fields
+			'id_arquivo, id_empresa, id_leiaute_arquivo, tipo_campo, numero_linha, ' || string_agg(quote_ident(lca.nome_coluna), ', ') AS colunas,
+			'ra.id_arquivo, ' || COALESCE(V_id_empresa::TEXT, 'NULL') || ', ' || VLeiauteID || ', 5, ra.numero_linha, ' || string_agg('jpr.' || quote_ident(lca.nome_coluna), ', ') AS select_fields
 		INTO V_colunas, V_select
 		FROM public.leiaute_campo_arquivo lca
 		WHERE lca.id_leiaute_arquivo = VLeiauteID
@@ -100,25 +110,7 @@ BEGIN
 				'WHERE ra.id_arquivo = %L ' ||
 				'  AND ra.numero_linha > 1 ' ||
 				'  AND ra.mensagem_erro IS NULL ' ||
-				'  -- Filtra apenas a linha que pertence ao layout de trailer ' ||
-				'  AND NOT EXISTS ( ' ||
-				'      SELECT 1 ' ||
-				'      FROM public.leiaute_campo_arquivo lca2 ' ||
-				'      WHERE lca2.id_leiaute_arquivo = ' || VLeiauteID ||
-				'        AND lca2.tipo_campo = 5 ' ||
-				'        AND lca2.valor_padrao IS NOT NULL ' ||
-				'        AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER) ' ||
-				'  ) ' ||
-				'  AND EXISTS ( ' ||
-				'      SELECT 1 ' ||
-				'      FROM public.leiaute_campo_arquivo lca2 ' ||
-				'      WHERE lca2.id_leiaute_arquivo = ' || VLeiauteID ||
-				'        AND lca2.tipo_campo = 5 ' ||
-				'        AND lca2.valor_padrao IS NOT NULL ' ||
-				'        AND lca2.valor_padrao = SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER) ' ||
-				'  ) ' ||
-				'ORDER BY ra.numero_linha DESC ' ||
-				'LIMIT 1',
+				'  AND (ra.conteudo_jsonb ->> ''_is_trailer'')::BOOLEAN = TRUE',
 				V_colunas,
 				V_select,
 				V_id_arquivo
@@ -158,6 +150,6 @@ BEGIN
 			);
 		END IF;
 
-	END IF;
+	END LOOP;
 END;
 $$;
