@@ -32,6 +32,8 @@ BEGIN
 	FROM storage.objects o
 	WHERE o.bucket_id = 'hetzner_files'
 	  AND SPLIT_PART(o.name, '/', 1) = 'error'
+	  AND o.name NOT ILIKE '%cielo%'
+	  AND o.name NOT ILIKE '%getnet%'
 	LIMIT 300;
 
 	-- Se não houver arquivos para reprocessar, aborta
@@ -69,8 +71,10 @@ BEGIN
 
 	-- 5. Deleta registros residuais das tabelas de processamento para evitar erros de chaves únicas no reprocessamento
 	DELETE FROM public.trailer_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.trailer_lote WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.movimento_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.header_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.header_lote WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	
 	DELETE FROM public.registro_arquivo 
 	WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL)

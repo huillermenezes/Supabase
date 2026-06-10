@@ -3,10 +3,12 @@
 -- =================================================================================
 
 DROP TABLE IF EXISTS public.registro_arquivo CASCADE;
-DROP TABLE IF EXISTS public.storage_objects_download CASCADE;
+--DROP TABLE IF EXISTS public.storage_objects_download CASCADE;
 DROP TABLE IF EXISTS public.header_arquivo CASCADE;
+DROP TABLE IF EXISTS public.header_lote CASCADE;
 DROP TABLE IF EXISTS public.movimento_arquivo CASCADE;
 DROP TABLE IF EXISTS public.trailer_arquivo CASCADE;
+DROP TABLE IF EXISTS public.trailer_lote CASCADE;
 DROP TABLE IF EXISTS public.leiaute_campo_arquivo CASCADE;
 DROP TABLE IF EXISTS public.parametro_leiaute_arquivo CASCADE;
 DROP TABLE IF EXISTS public.leiaute_arquivo CASCADE;
@@ -176,6 +178,60 @@ CREATE TABLE IF NOT EXISTS public.movimento_arquivo (
 	, sigla_empresa_sistema					TEXT
 	, numero_sequencial_arquivo			TEXT
 	, numero_sequencial_registro			TEXT
+	, sega_codigo_banco						TEXT
+	, sega_lote_servico						TEXT
+	, sega_tipo_registro						TEXT
+	, sega_sequencial_lote					TEXT
+	, sega_codigo_segmento					TEXT
+	, sega_tipo_movimento					TEXT
+	, sega_instrucao_movimento				TEXT
+	, sega_camara_centralizadora			TEXT
+	, sega_banco_favorecido					TEXT
+	, sega_agencia_favorecido				TEXT
+	, sega_dv_agencia_favorecido			TEXT
+	, sega_conta_favorecido					TEXT
+	, sega_dv_conta_favorecido				TEXT
+	, sega_dv_agencia_conta_favorecido	TEXT
+	, sega_nome_favorecido					TEXT
+	, sega_seu_numero							TEXT
+	, sega_data_pagamento					TEXT
+	, sega_tipo_moeda							TEXT
+	, sega_quantidade_moeda					TEXT
+	, sega_valor_pagamento					TEXT
+	, sega_nosso_numero						TEXT
+	, sega_data_real							TEXT
+	, sega_valor_real							TEXT
+	, sega_outras_informacoes				TEXT
+	, sega_finalidade_doc					TEXT
+	, sega_finalidade_ted					TEXT
+	, sega_aviso_favorecido					TEXT
+	, sega_cnab_1								TEXT
+	, sega_ocorrencias						TEXT
+	, segb_codigo_banco						TEXT
+	, segb_lote_servico						TEXT
+	, segb_tipo_registro						TEXT
+	, segb_sequencial_lote					TEXT
+	, segb_codigo_segmento					TEXT
+	, segb_cnab_1								TEXT
+	, segb_tipo_inscricao_favorecido		TEXT
+	, segb_inscricao_favorecido			TEXT
+	, segb_logradouro_favorecido			TEXT
+	, segb_numero_endereco					TEXT
+	, segb_complemento_endereco			TEXT
+	, segb_bairro_favorecido				TEXT
+	, segb_cidade_favorecido				TEXT
+	, segb_cep_favorecido					TEXT
+	, segb_complemento_cep_favorecido	TEXT
+	, segb_uf_favorecido						TEXT
+	, segb_data_vencimento					TEXT
+	, segb_valor_pagamento					TEXT
+	, segb_valor_abatimento					TEXT
+	, segb_valor_desconto					TEXT
+	, segb_valor_mora							TEXT
+	, segb_valor_multa						TEXT
+	, segb_codigo_documento_favorecido	TEXT
+	, segb_aviso_favorecido					TEXT
+	, segb_cnab_2								TEXT
 	, CONSTRAINT pk_movimento_arquivo PRIMARY KEY (id)
 	, CONSTRAINT fk_movimento_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
@@ -211,6 +267,65 @@ CREATE TABLE IF NOT EXISTS public.trailer_arquivo(
 	, numero_sequencial_registro			TEXT
 	, CONSTRAINT pk_trailer_arquivo PRIMARY KEY (id)
 	, CONSTRAINT fk_trailer_arquivo_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.header_lote (
+	id											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo								BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
+	, id_leiaute_arquivo						BIGINT NOT NULL
+	, tipo_campo								BIGINT NOT NULL
+	, numero_linha								BIGINT NOT NULL
+	, codigo_banco								TEXT
+	, lote_servico								TEXT
+	, tipo_registro							TEXT
+	, tipo_operacao							TEXT
+	, tipo_servico								TEXT
+	, forma_lancamento						TEXT
+	, versao_layout_lote						TEXT
+	, cnab_1										TEXT
+	, tipo_inscricao_empresa				TEXT
+	, inscricao_empresa						TEXT
+	, codigo_convenio							TEXT
+	, agencia_mantenedora					TEXT
+	, dv_agencia								TEXT
+	, conta_corrente							TEXT
+	, dv_conta									TEXT
+	, dv_agencia_conta						TEXT
+	, nome_empresa								TEXT
+	, mensagem									TEXT
+	, logradouro_empresa						TEXT
+	, numero_endereco							TEXT
+	, complemento_endereco					TEXT
+	, cidade_empresa							TEXT
+	, cep_empresa								TEXT
+	, complemento_cep_empresa				TEXT
+	, uf_empresa								TEXT
+	, cnab_2										TEXT
+	, ocorrencias_lote						TEXT
+	, CONSTRAINT pk_header_lote PRIMARY KEY (id)
+	, CONSTRAINT fk_header_lote_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.trailer_lote (
+	id											BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo								BIGINT NOT NULL
+	, id_empresa								BIGINT NOT NULL
+	, id_leiaute_arquivo						BIGINT NOT NULL
+	, tipo_campo								BIGINT NOT NULL
+	, numero_linha								BIGINT NOT NULL
+	, codigo_banco								TEXT
+	, lote_servico								TEXT
+	, tipo_registro							TEXT
+	, cnab_1										TEXT
+	, qtd_registros_lote						TEXT
+	, valor_total_lote						TEXT
+	, qtd_moedas_lote							TEXT
+	, numero_aviso_debito					TEXT
+	, cnab_2										TEXT
+	, ocorrencias_lote						TEXT
+	, CONSTRAINT pk_trailer_lote PRIMARY KEY (id)
+	, CONSTRAINT fk_trailer_lote_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
 
 

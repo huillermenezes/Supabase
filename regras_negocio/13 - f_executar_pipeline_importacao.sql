@@ -71,7 +71,7 @@ SELECT cron.schedule(
 SELECT cron.schedule(
 	'pipeline_7_processar_header',
 	'30 * * * *',
-	$$ SELECT public.f_processar_header_arquivo(); $$
+	$$ SELECT public.f_processar_header_arquivo(); SELECT public.f_processar_header_lote(); $$
 );
 
 -- Etapa 8: Processa os movimentos e insere em movimento_arquivo (Minuto 35)
@@ -85,7 +85,7 @@ SELECT cron.schedule(
 SELECT cron.schedule(
 	'pipeline_9_processar_trailer',
 	'40 * * * *',
-	$$ SELECT public.f_processar_trailer_arquivo(); $$
+	$$ SELECT public.f_processar_trailer_lote(); SELECT public.f_processar_trailer_arquivo(); $$
 );
 
 -- Etapa 10: Move os arquivos com erro de validação/processamento para a pasta error/ (Minuto 45)

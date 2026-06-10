@@ -15,6 +15,8 @@ BEGIN
 		  AND SPLIT_PART(o.name, '/', 1) = 'input'
 		  AND NOT NULLIF(TRIM(SPLIT_PART(o.name, '/', 2)), '') IS NULL
 		  AND SPLIT_PART(o.name, '/', 2) NOT IN ('.emptyFolderPlaceholder')
+		  AND o.name NOT ILIKE '%cielo%'
+		  AND o.name NOT ILIKE '%getnet%'
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NULL
 	)
 	UPDATE  storage.objects o

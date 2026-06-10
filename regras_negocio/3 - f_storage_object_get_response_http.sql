@@ -41,6 +41,8 @@ BEGIN
 		FROM storage.objects o
 		WHERE o.bucket_id = 'hetzner_files'
 		  AND SPLIT_PART(o.name, '/', 1) = 'input'
+		  AND o.name NOT ILIKE '%cielo%'
+		  AND o.name NOT ILIKE '%getnet%'
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NOT NULL
 		  AND EXISTS (
@@ -98,6 +100,8 @@ BEGIN
 		FROM storage.objects o
 		WHERE o.bucket_id = 'hetzner_files'
 		  AND SPLIT_PART(o.name, '/', 1) = 'input'
+		  AND o.name NOT ILIKE '%cielo%'
+		  AND o.name NOT ILIKE '%getnet%'
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NOT NULL
 		  AND EXISTS (
