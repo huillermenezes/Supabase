@@ -34,8 +34,8 @@ BEGIN
 		  AND SPLIT_PART(o.name, '/', 2) NOT IN ('.emptyFolderPlaceholder')
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NULL
-		ORDER BY o.created_at ASC
-		LIMIT 100
+		ORDER BY o.created_at DESC
+		LIMIT 200
 	)
 	UPDATE  storage.objects o
 	SET metadata = sso.metadata

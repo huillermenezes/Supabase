@@ -18,7 +18,7 @@ DECLARE
 	V_auth_key TEXT;
 	VRecord RECORD;
 BEGIN
-	-- 1. Obtém arquivos pendentes de processamento de trailer (com header e movimento já processados), limitando a 30 por vez
+	-- 1. Obtém arquivos pendentes de processamento de trailer (com header e movimento já processados), limitando a 200 por vez
 	FOR VRecord IN
 		SELECT DISTINCT 
 			ra_h.id_arquivo, 
@@ -42,7 +42,8 @@ BEGIN
 		  AND NOT EXISTS (
 			  SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo
 		  )
-		LIMIT 30
+		ORDER BY ra_h.id_arquivo DESC
+		LIMIT 200
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;
@@ -117,37 +118,6 @@ BEGIN
 			);
 
 			EXECUTE V_sql;
-		END IF;
-
-		-- 4. Ao final do processamento com sucesso de todas as etapas (trailer inserido), move o arquivo para backup/
-		SELECT
-			o.name AS caminho_origem
-			, ra_h.nome_arquivo
-			, REPLACE(
-				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-				, '/object/authenticated/', '/object/move'
-			) AS url_move
-			, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
-		INTO V_caminho_origem, V_nome_arquivo, V_url_move, V_auth_key
-		FROM public.registro_arquivo ra_h
-		INNER JOIN storage.objects o ON o.name IN (CONCAT('processamento/', ra_h.nome_arquivo), CONCAT('input/', ra_h.nome_arquivo)) AND o.bucket_id = 'hetzner_files'
-		WHERE ra_h.id_arquivo = V_id_arquivo
-		  AND ra_h.numero_linha = 1;
-
-		IF V_url_move IS NOT NULL AND V_auth_key IS NOT NULL AND V_caminho_origem IS NOT NULL THEN
-			PERFORM net.http_post(
-				url := V_url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM V_auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM V_auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', V_caminho_origem
-					, 'destinationKey', CONCAT('backup/', V_nome_arquivo)
-				)
-			);
 		END IF;
 
 	END LOOP;

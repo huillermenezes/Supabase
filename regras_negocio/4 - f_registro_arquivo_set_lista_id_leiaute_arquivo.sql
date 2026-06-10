@@ -46,7 +46,8 @@ BEGIN
 		WHERE ra.numero_linha = 1
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND ra.conteudo_jsonb IS NULL  -- ainda não processado
-		LIMIT 30
+		ORDER BY ra.id_arquivo DESC
+		LIMIT 200
 	LOOP
 		IF COALESCE(CARDINALITY(VRecord.lista_id_leiaute_arquivo), 0) = 0 THEN
 			-- Registra o erro na linha 1 do arquivo

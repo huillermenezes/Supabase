@@ -14,7 +14,7 @@ DECLARE
 	V_select TEXT;
 	V_sql TEXT;
 BEGIN
-	-- 1. Loop para processar até 30 arquivos por vez
+	-- 1. Loop para processar até 200 arquivos por vez
 	FOR VRecord IN
 		SELECT DISTINCT 
 			ra_h.id_arquivo, 
@@ -38,11 +38,19 @@ BEGIN
 			  FROM public.movimento_arquivo ma 
 			  WHERE ma.id_arquivo = ra_h.id_arquivo
 		  )
-		LIMIT 30
+		ORDER BY ra_h.id_arquivo DESC
+		LIMIT 200
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;
 		V_id_empresa := VRecord.id_empresa;
+
+		-- SE FOR SICOOB CNAB 240 RETORNO, PROCESSA PELAS FUNÇÕES ESPECÍFICAS
+		IF VLeiauteID = (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'cobranca_sicoob_240_posicoes_retorno' AND tipo_arquivo = 2 LIMIT 1) THEN
+			PERFORM public.f_processar_movimento_sicoob_240_t(V_id_arquivo, V_id_empresa, VLeiauteID);
+			PERFORM public.f_processar_movimento_sicoob_240_u(V_id_arquivo, V_id_empresa, VLeiauteID);
+			CONTINUE;
+		END IF;
 
 		-- 2. Atualiza o conteudo_jsonb de registro_arquivo (linhas > 1) com os campos do movimento extraídos dinamicamente
 		WITH mov_json AS (

@@ -48,7 +48,8 @@ BEGIN
 			  FROM net._http_response hr 
 			  WHERE hr.id = CAST(o.metadata ->> 'request_id' AS BIGINT)
 		  )
-		LIMIT 20
+		ORDER BY o.created_at DESC
+		LIMIT 200
 	)
 	INSERT INTO public.registro_arquivo (
 		id_arquivo, nome_arquivo, numero_linha, linha_arquivo

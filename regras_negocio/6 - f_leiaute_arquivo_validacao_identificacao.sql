@@ -34,7 +34,8 @@ BEGIN
 		WHERE ra.numero_linha = 1
 		AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho e constantes
-		LIMIT 30
+		ORDER BY ra.id_arquivo DESC
+		LIMIT 200
 	LOOP
 		-- Pega o único leiaute candidato
 		IF COALESCE(jsonb_array_length(VRecord.conteudo_jsonb -> 'lista_id_leiaute_arquivo'), 0) <> 1 THEN

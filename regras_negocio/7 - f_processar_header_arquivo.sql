@@ -14,7 +14,7 @@ DECLARE
 	V_select TEXT;
 	V_sql TEXT;
 BEGIN
-	-- 1. Loop para processar até 30 arquivos por vez
+	-- 1. Loop para processar até 200 arquivos por vez
 	FOR VRecord IN
 		SELECT DISTINCT 
 			ra.id_arquivo, 
@@ -31,7 +31,8 @@ BEGIN
 			  FROM public.header_arquivo ha 
 			  WHERE ha.id_arquivo = ra.id_arquivo
 		  )
-		LIMIT 30
+		ORDER BY ra.id_arquivo DESC
+		LIMIT 200
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;

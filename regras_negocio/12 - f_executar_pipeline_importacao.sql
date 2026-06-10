@@ -15,6 +15,10 @@ SELECT cron.unschedule('pipeline_6_validacao_identificacao');
 SELECT cron.unschedule('pipeline_7_processar_header');
 SELECT cron.unschedule('pipeline_8_processar_movimento');
 SELECT cron.unschedule('pipeline_9_processar_trailer');
+SELECT cron.unschedule('pipeline_10_mover_backup');
+SELECT cron.unschedule('pipeline_11_reprocessar_erros');
+-- Remove legado de nomes antigos
+SELECT cron.unschedule('pipeline_10_reprocessar_erros');
 
 -- 2. Agenda cada uma das 9 etapas para rodar a cada hora em intervalos de 5 minutos:
 
@@ -74,9 +78,23 @@ SELECT cron.schedule(
 	$$ SELECT public.f_processar_movimento_arquivo(); $$
 );
 
--- Etapa 9: Processa o trailer, insere em trailer_arquivo e move para backup/ (Minuto 40)
+-- Etapa 9: Processa o trailer e insere em trailer_arquivo (Minuto 40)
 SELECT cron.schedule(
 	'pipeline_9_processar_trailer',
 	'40 * * * *',
 	$$ SELECT public.f_processar_trailer_arquivo(); $$
+);
+
+-- Etapa 10: Move os arquivos processados com sucesso para a pasta backup/ (Minuto 45)
+SELECT cron.schedule(
+	'pipeline_10_mover_backup',
+	'45 * * * *',
+	$$ SELECT public.f_storage_object_mover_backup(); $$
+);
+
+-- Etapa 11: Reprocessa arquivos em erro cujos leiautes ou parâmetros foram corrigidos (Minuto 50)
+SELECT cron.schedule(
+	'pipeline_11_reprocessar_erros',
+	'50 * * * *',
+	$$ SELECT public.f_reprocessar_arquivos_erro_automatico(); $$
 );
