@@ -18,12 +18,6 @@ BEGIN
 			ra.id AS id_registro_arquivo
 			, ra.id_arquivo
 			, ra.nome_arquivo
-			, o.name AS caminho_origem
-			, REPLACE(
-				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-				, '/object/authenticated/', '/object/move'
-			) AS url_move
-			, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
 			, (
 				SELECT ARRAY_AGG(id_cand)
 				FROM (
@@ -40,66 +34,21 @@ BEGIN
 				)
 			) AS lista_leiaute_constante
 		FROM public.registro_arquivo ra
-			INNER JOIN storage.objects o ON o.name IN (CONCAT('processamento/', ra.nome_arquivo), CONCAT('input/', ra.nome_arquivo)) AND o.bucket_id = 'hetzner_files'
 		WHERE ra.numero_linha = 1
-		AND ra.mensagem_erro IS NULL   -- sem erro registrado
-		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
-		ORDER BY ra.id_arquivo DESC
-		LIMIT 200
+		  AND ra.mensagem_erro IS NULL   -- sem erro registrado
+		  AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
+		ORDER BY ra.id_arquivo ASC
+		LIMIT 300
 	LOOP
 		IF COALESCE(CARDINALITY(VRecord.lista_leiaute_constante), 0) = 0 THEN
 			UPDATE public.registro_arquivo
 			SET mensagem_erro = 'Nenhum leiaute identificado pelos campos constantes do header.'
 			WHERE id = VRecord.id_registro_arquivo;
 
-			-- Registra o erro nos metadados do storage
-			UPDATE storage.objects
-			SET metadata = jsonb_concat(
-				metadata,
-				jsonb_build_object('mensagem_erro', 'Nenhum leiaute identificado pelos campos constantes do header.')
-			)
-			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
-			PERFORM net.http_post(
-				url := VRecord.url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', VRecord.caminho_origem
-					, 'destinationKey', CONCAT('error/', VRecord.nome_arquivo)
-				)
-			);
-
 		ELSIF COALESCE(CARDINALITY(VRecord.lista_leiaute_constante), 0) > 1 THEN
 			UPDATE public.registro_arquivo
 			SET mensagem_erro = 'Multiplos leiautes identificados pelos campos constantes do header.'
 			WHERE id = VRecord.id_registro_arquivo;
-
-			-- Registra o erro nos metadados do storage
-			UPDATE storage.objects
-			SET metadata = jsonb_concat(
-				metadata,
-				jsonb_build_object('mensagem_erro', 'Multiplos leiautes identificados pelos campos constantes do header.')
-			)
-			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
-			PERFORM net.http_post(
-				url := VRecord.url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', VRecord.caminho_origem
-					, 'destinationKey', CONCAT('error/', VRecord.nome_arquivo)
-				)
-			);
 		ELSE
 			-- Registra a lista de leiautes atualizada com o único candidato sobrevivente
 			UPDATE public.registro_arquivo

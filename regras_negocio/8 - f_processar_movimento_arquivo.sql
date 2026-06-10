@@ -38,8 +38,8 @@ BEGIN
 			  FROM public.movimento_arquivo ma 
 			  WHERE ma.id_arquivo = ra_h.id_arquivo
 		  )
-		ORDER BY ra_h.id_arquivo DESC
-		LIMIT 200
+		ORDER BY ra_h.id_arquivo ASC
+		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;

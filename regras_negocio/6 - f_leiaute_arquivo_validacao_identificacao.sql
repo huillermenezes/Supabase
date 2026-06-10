@@ -14,8 +14,8 @@ BEGIN
 	-- Confirma o leiaute pelo campo_identificacao e localiza o parametro correspondente
 	-- em parametro_leiaute_arquivo. Só chega aqui quem passou pelas duas validações
 	-- anteriores, portanto há exatamente 1 leiaute candidato.
-	-- Lista vazia ou mais de um = erro, arquivo movido para erro/.
-	-- Exatamente 1 = sucesso, arquivo movido para backup/.
+	-- Lista vazia ou mais de um = erro.
+	-- Exatamente 1 = sucesso.
 	FOR VRecord IN
 		SELECT
 			ra.id AS id_registro_arquivo
@@ -23,19 +23,12 @@ BEGIN
 			, ra.nome_arquivo
 			, ra.linha_arquivo
 			, ra.conteudo_jsonb
-			, o.name AS caminho_origem
-			, REPLACE(
-				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-				, '/object/authenticated/', '/object/move'
-			) AS url_move
-			, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
 		FROM public.registro_arquivo ra
-			INNER JOIN storage.objects o ON o.name IN (CONCAT('processamento/', ra.nome_arquivo), CONCAT('input/', ra.nome_arquivo)) AND o.bucket_id = 'hetzner_files'
 		WHERE ra.numero_linha = 1
-		AND ra.mensagem_erro IS NULL   -- sem erro registrado
-		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho e constantes
-		ORDER BY ra.id_arquivo DESC
-		LIMIT 200
+		  AND ra.mensagem_erro IS NULL   -- sem erro registrado
+		  AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho e constantes
+		ORDER BY ra.id_arquivo ASC
+		LIMIT 300
 	LOOP
 		-- Pega o único leiaute candidato
 		IF COALESCE(jsonb_array_length(VRecord.conteudo_jsonb -> 'lista_id_leiaute_arquivo'), 0) <> 1 THEN
@@ -43,27 +36,6 @@ BEGIN
 			UPDATE public.registro_arquivo
 			SET mensagem_erro = 'Ambiguidade na identificação: múltiplos ou nenhuns leiautes candidatos.'
 			WHERE id = VRecord.id_registro_arquivo;
-
-			UPDATE storage.objects
-			SET metadata = jsonb_concat(
-				metadata,
-				jsonb_build_object('mensagem_erro', 'Ambiguidade na identificação: múltiplos ou nenhuns leiautes candidatos.')
-			)
-			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
-			PERFORM net.http_post(
-				url := VRecord.url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', VRecord.caminho_origem
-					, 'destinationKey', CONCAT('error/', VRecord.nome_arquivo)
-				)
-			);
 			CONTINUE;
 		END IF;
 
@@ -92,53 +64,11 @@ BEGIN
 			UPDATE public.registro_arquivo
 			SET mensagem_erro = 'Nenhum parametro identificado pelo campo de identificacao do header.'
 			WHERE id = VRecord.id_registro_arquivo;
-
-			UPDATE storage.objects
-			SET metadata = jsonb_concat(
-				metadata,
-				jsonb_build_object('mensagem_erro', 'Nenhum parametro identificado pelo campo de identificacao do header.')
-			)
-			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
-			PERFORM net.http_post(
-				url := VRecord.url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', VRecord.caminho_origem
-					, 'destinationKey', CONCAT('error/', VRecord.nome_arquivo)
-				)
-			);
 		ELSIF COALESCE(CARDINALITY(VListaParametros), 0) > 1 THEN
 			-- Erro: Múltiplos parâmetros identificados
 			UPDATE public.registro_arquivo
 			SET mensagem_erro = 'Multiplos parametros de leiaute identificados pelo campo de identificacao.'
 			WHERE id = VRecord.id_registro_arquivo;
-
-			UPDATE storage.objects
-			SET metadata = jsonb_concat(
-				metadata,
-				jsonb_build_object('mensagem_erro', 'Multiplos parametros de leiaute identificados pelo campo de identificacao.')
-			)
-			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
-			PERFORM net.http_post(
-				url := VRecord.url_move
-				, headers := jsonb_build_object(
-					'apikey', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key)
-					, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VRecord.auth_key))
-					, 'Content-Type', 'application/json'
-				)
-				, body := jsonb_build_object(
-					'bucketId', 'hetzner_files'
-					, 'sourceKey', VRecord.caminho_origem
-					, 'destinationKey', CONCAT('error/', VRecord.nome_arquivo)
-				)
-			);
 		ELSE
 			-- Sucesso!
 			VParametroID := VListaParametros[1];
@@ -166,7 +96,6 @@ BEGIN
 				)
 			)
 			WHERE name IN (CONCAT('processamento/', VRecord.nome_arquivo), CONCAT('input/', VRecord.nome_arquivo)) AND bucket_id = 'hetzner_files';
-
 		END IF;
 	END LOOP;
 END;

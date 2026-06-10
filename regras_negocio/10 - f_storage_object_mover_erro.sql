@@ -1,6 +1,6 @@
-DROP FUNCTION IF EXISTS public.f_storage_object_mover_backup() CASCADE;
+DROP FUNCTION IF EXISTS public.f_storage_object_mover_erro() CASCADE;
 
-CREATE OR REPLACE FUNCTION public.f_storage_object_mover_backup()
+CREATE OR REPLACE FUNCTION public.f_storage_object_mover_erro()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -21,7 +21,8 @@ BEGIN
 	IF V_url_move IS NULL OR V_auth_key IS NULL THEN
 		RETURN;
 	END IF;
-	-- 2. Dispara as chamadas HTTP de movimentação no Storage em lote diretamente da subquery
+
+	-- 2. Dispara as chamadas HTTP de movimentação para a pasta error/ em lote
 	PERFORM net.http_post(
 		url := V_url_move
 		, headers := jsonb_build_object(
@@ -32,7 +33,7 @@ BEGIN
 		, body := jsonb_build_object(
 			'bucketId', 'hetzner_files'
 			, 'sourceKey', sub.caminho_origem
-			, 'destinationKey', CONCAT('backup/', sub.nome_arquivo)
+			, 'destinationKey', CONCAT('error/', sub.nome_arquivo)
 		)
 	)
 	FROM (
@@ -43,12 +44,11 @@ BEGIN
 		INNER JOIN public.registro_arquivo ra_h 
 			ON ra_h.id_arquivo = CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT)
 			AND ra_h.numero_linha = 1
-		INNER JOIN public.trailer_arquivo ta 
-			ON ta.id_arquivo = ra_h.id_arquivo
 		WHERE o.bucket_id = 'hetzner_files'
 		  AND o.name LIKE 'processamento/%'
-		ORDER BY o.created_at DESC
-		LIMIT 1000
+		  AND ra_h.mensagem_erro IS NOT NULL
+		ORDER BY o.created_at ASC
+		LIMIT 300
 	) sub;
 END;
 $$;

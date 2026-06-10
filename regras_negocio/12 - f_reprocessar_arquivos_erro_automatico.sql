@@ -22,7 +22,7 @@ BEGIN
 		RETURN;
 	END IF;
 
-	-- 2. Cria tabela temporária com lote de 1000 arquivos em erro por execução
+	-- 2. Cria tabela temporária com lote de 300 arquivos em erro por execução
 	CREATE TEMP TABLE temp_arquivos_reprocessar AS
 	SELECT 
 		o.name AS caminho_erro,
@@ -32,7 +32,7 @@ BEGIN
 	FROM storage.objects o
 	WHERE o.bucket_id = 'hetzner_files'
 	  AND SPLIT_PART(o.name, '/', 1) = 'error'
-	LIMIT 1000;
+	LIMIT 300;
 
 	-- Se não houver arquivos para reprocessar, aborta
 	IF NOT EXISTS (SELECT 1 FROM temp_arquivos_reprocessar) THEN

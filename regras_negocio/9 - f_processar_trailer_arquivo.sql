@@ -42,8 +42,8 @@ BEGIN
 		  AND NOT EXISTS (
 			  SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo
 		  )
-		ORDER BY ra_h.id_arquivo DESC
-		LIMIT 200
+		ORDER BY ra_h.id_arquivo ASC
+		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;

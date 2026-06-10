@@ -31,8 +31,8 @@ BEGIN
 			  FROM public.header_arquivo ha 
 			  WHERE ha.id_arquivo = ra.id_arquivo
 		  )
-		ORDER BY ra.id_arquivo DESC
-		LIMIT 200
+		ORDER BY ra.id_arquivo ASC
+		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
 		VLeiauteID := VRecord.id_leiaute_arquivo;
