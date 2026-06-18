@@ -73,6 +73,14 @@ BEGIN
 	DELETE FROM public.trailer_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.trailer_lote WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.movimento_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_folha_pagamento_240_segmento_a WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_folha_pagamento_240_segmento_b WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_1 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_2 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_3 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_4 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_5 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_adquirente_400_tipo_6 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.header_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.header_lote WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	

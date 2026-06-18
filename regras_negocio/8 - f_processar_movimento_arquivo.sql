@@ -13,6 +13,9 @@ DECLARE
 	V_colunas TEXT;
 	V_select TEXT;
 	V_sql TEXT;
+	V_tabela_destino TEXT;
+	V_denominacao TEXT;
+	VGroupRecord RECORD;
 BEGIN
 	-- 1. Loop para processar até 200 arquivos por vez
 	FOR VRecord IN
@@ -34,9 +37,31 @@ BEGIN
 		  )
 		  -- O movimento ainda não deve estar processado
 		  AND NOT EXISTS (
-			  SELECT 1 
-			  FROM public.movimento_arquivo ma 
-			  WHERE ma.id_arquivo = ra_h.id_arquivo
+			  SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_folha_pagamento_240_segmento_a ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_folha_pagamento_240_segmento_b ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_1 ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_2 ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_3 ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_4 ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_5 ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_adquirente_400_tipo_6 ma WHERE ma.id_arquivo = ra_h.id_arquivo
 		  )
 		ORDER BY ra_h.id_arquivo ASC
 		LIMIT 300
@@ -45,84 +70,168 @@ BEGIN
 		VLeiauteID := VRecord.id_leiaute_arquivo;
 		V_id_empresa := VRecord.id_empresa;
 
-		-- SE FOR SICOOB CNAB 240 RETORNO, PROCESSA PELAS FUNÇÕES ESPECÍFICAS
-		IF VLeiauteID = (SELECT id FROM public.leiaute_arquivo WHERE denominacao = 'cobranca_sicoob_240_posicoes_retorno' AND tipo_arquivo = 2 LIMIT 1) THEN
-			PERFORM public.f_processar_movimento_sicoob_240_t(V_id_arquivo, V_id_empresa, VLeiauteID);
-			PERFORM public.f_processar_movimento_sicoob_240_u(V_id_arquivo, V_id_empresa, VLeiauteID);
-			CONTINUE;
-		END IF;
 
 		-- 2. Atualiza o conteudo_jsonb de registro_arquivo (linhas > 1) com os campos do movimento extraídos dinamicamente
-		WITH mov_json AS (
+		WITH line_groups AS (
 			SELECT 
-				ra.id AS id_registro_arquivo
-				, jsonb_object_agg(
-					lca.nome_coluna, 
-					SUBSTRING(ra.linha_arquivo, lca.posicao_inicial::INTEGER, lca.tamanho::INTEGER)
-				) AS parsed_fields
+				ra.id AS id_registro_arquivo,
+				ra.linha_arquivo,
+				ra.numero_linha,
+				ra.conteudo_jsonb,
+				g.grupo,
+				NOT EXISTS (
+					SELECT 1
+					FROM public.leiaute_campo_arquivo lca2
+					WHERE lca2.id_leiaute_arquivo = VLeiauteID
+					  AND lca2.tipo_campo = 3
+					  AND lca2.grupo = g.grupo
+					  AND lca2.valor_padrao IS NOT NULL
+					  AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER)
+				) AS group_matches
 			FROM public.registro_arquivo ra
-			INNER JOIN public.leiaute_campo_arquivo lca 
-				ON lca.id_leiaute_arquivo = VLeiauteID
+			CROSS JOIN (
+				SELECT DISTINCT lca3.grupo AS grupo
+				FROM public.leiaute_campo_arquivo lca3
+				WHERE lca3.id_leiaute_arquivo = VLeiauteID
+				  AND lca3.tipo_campo = 3
+				  AND lca3.nome_coluna IS NOT NULL
+			) g
 			WHERE ra.id_arquivo = V_id_arquivo
 			  AND ra.numero_linha > 1
 			  AND ra.mensagem_erro IS NULL
-			  AND lca.tipo_campo = 3 -- Movimento
-			  AND lca.nome_coluna IS NOT NULL
-			  -- Filtra as linhas que pertencem de fato ao layout de movimento
-			  AND NOT EXISTS (
-				  SELECT 1 
-				  FROM public.leiaute_campo_arquivo lca2
-				  WHERE lca2.id_leiaute_arquivo = VLeiauteID
-				    AND lca2.tipo_campo = 3
-				    AND lca2.valor_padrao IS NOT NULL
-				    AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER)
-			  )
-			GROUP BY ra.id
+		),
+		matching_lines AS (
+			SELECT 
+				id_registro_arquivo,
+				linha_arquivo,
+				numero_linha,
+				conteudo_jsonb,
+				ARRAY_AGG(grupo) FILTER (WHERE group_matches) AS matched_groups
+			FROM line_groups
+			GROUP BY id_registro_arquivo, linha_arquivo, numero_linha, conteudo_jsonb
+			HAVING 
+				BOOL_OR(grupo = 'geral' AND group_matches)
+				AND (
+					NOT EXISTS (
+						SELECT 1 
+						FROM public.leiaute_campo_arquivo lca4
+						WHERE lca4.id_leiaute_arquivo = VLeiauteID
+						  AND lca4.tipo_campo = 3
+						  AND lca4.nome_coluna IS NOT NULL
+						  AND lca4.grupo <> 'geral'
+					)
+					OR BOOL_OR(grupo <> 'geral' AND group_matches)
+				)
+		),
+		mov_json AS (
+			SELECT 
+				ml.id_registro_arquivo
+				, jsonb_object_agg(
+					lca.nome_coluna, 
+					SUBSTRING(ml.linha_arquivo, lca.posicao_inicial::INTEGER, lca.tamanho::INTEGER)
+				) AS parsed_fields
+			FROM matching_lines ml
+			INNER JOIN public.leiaute_campo_arquivo lca 
+				ON lca.id_leiaute_arquivo = VLeiauteID
+				AND lca.tipo_campo = 3
+				AND lca.nome_coluna IS NOT NULL
+				AND lca.grupo = ANY(ml.matched_groups)
+			GROUP BY ml.id_registro_arquivo
 		)
 		UPDATE public.registro_arquivo ra
 		SET conteudo_jsonb = COALESCE(ra.conteudo_jsonb, '{}'::jsonb) || mj.parsed_fields
 		FROM mov_json mj
 		WHERE ra.id = mj.id_registro_arquivo;
 
-		-- 3. Monta a query dinâmica e executa a inserção dos movimentos para este arquivo
-		SELECT 
-			'id_arquivo, id_empresa, id_leiaute_arquivo, tipo_campo, numero_linha, ' || string_agg(quote_ident(lca.nome_coluna), ', ') AS colunas,
-			'ra.id_arquivo, ' || COALESCE(V_id_empresa::TEXT, 'NULL') || ', ' || VLeiauteID || ', 3, ra.numero_linha, ' || string_agg('jpr.' || quote_ident(lca.nome_coluna), ', ') AS select_fields
-		INTO V_colunas, V_select
-		FROM public.leiaute_campo_arquivo lca
-		WHERE lca.id_leiaute_arquivo = VLeiauteID
-		  AND lca.tipo_campo = 3 -- Movimento
-		  AND lca.nome_coluna IS NOT NULL
-		  AND NULLIF(TRIM(lca.nome_coluna), '') IS NOT NULL;
+		-- 3. Monta a query dinâmica e executa a inserção dos movimentos para cada grupo do layout
+		FOR VGroupRecord IN
+			SELECT DISTINCT lca3.grupo AS grupo
+			FROM public.leiaute_campo_arquivo lca3
+			WHERE lca3.id_leiaute_arquivo = VLeiauteID
+			  AND lca3.tipo_campo = 3 -- Movimento
+			  AND lca3.nome_coluna IS NOT NULL
+		LOOP
+			-- Mapeia o grupo para a respectiva tabela destino
+			IF VGroupRecord.grupo = 'sega' THEN
+				V_tabela_destino := 'public.movimento_folha_pagamento_240_segmento_a';
+			ELSIF VGroupRecord.grupo = 'segb' THEN
+				V_tabela_destino := 'public.movimento_folha_pagamento_240_segmento_b';
+			ELSIF VGroupRecord.grupo = 'segt' THEN
+				V_tabela_destino := 'public.movimento_240_segmento_t';
+			ELSIF VGroupRecord.grupo = 'segu' THEN
+				V_tabela_destino := 'public.movimento_240_segmento_u';
+			ELSIF VGroupRecord.grupo LIKE 'getnet%' THEN
+				V_tabela_destino := 'public.movimento_adquirente_400_tipo_' || SUBSTRING(VGroupRecord.grupo FROM 'getnet([0-9]+)');
+			ELSE
+				V_tabela_destino := 'public.movimento_arquivo';
+			END IF;
 
-		IF V_colunas IS NOT NULL THEN
-			V_sql := format(
-				'INSERT INTO public.movimento_arquivo (%s) ' ||
-				'SELECT %s ' ||
-				'FROM public.registro_arquivo ra ' ||
-				'INNER JOIN jsonb_populate_record(NULL::public.movimento_arquivo, ra.conteudo_jsonb) jpr ON TRUE ' ||
-				'WHERE ra.id_arquivo = %L ' ||
-				'  AND ra.numero_linha > 1 ' ||
-				'  AND ra.mensagem_erro IS NULL ' ||
-				'  AND NOT EXISTS ( ' ||
-				'      SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra.id_arquivo ' ||
-				'  ) ' ||
-				'  AND NOT EXISTS ( ' ||
-				'      SELECT 1 ' ||
-				'      FROM public.leiaute_campo_arquivo lca2 ' ||
-				'      WHERE lca2.id_leiaute_arquivo = %L ' ||
-				'        AND lca2.tipo_campo = 3 ' ||
-				'        AND lca2.valor_padrao IS NOT NULL ' ||
-				'        AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER) ' ||
-				'  )',
-				V_colunas,
-				V_select,
-				V_id_arquivo,
-				VLeiauteID
-			);
+			-- Seleciona somente as colunas do grupo atual que de fato existem na tabela final
+			SELECT 
+				'id_arquivo, id_empresa, id_leiaute_arquivo, tipo_campo, numero_linha, ' || 
+				string_agg(quote_ident(lca.nome_coluna), ', ') AS colunas,
+				
+				'ra.id_arquivo, ' || COALESCE(V_id_empresa::TEXT, 'NULL') || ', ' || VLeiauteID || ', 3, ra.numero_linha, ' || 
+				string_agg('NULLIF(TRIM(ra.conteudo_jsonb ->> ' || quote_literal(lca.nome_coluna) || '), '''')', ', ') AS select_fields
+			INTO V_colunas, V_select
+			FROM public.leiaute_campo_arquivo lca
+			WHERE lca.id_leiaute_arquivo = VLeiauteID
+			  AND lca.tipo_campo = 3 -- Movimento
+			  AND lca.nome_coluna IS NOT NULL
+			  AND NULLIF(TRIM(lca.nome_coluna), '') IS NOT NULL
+			  AND lca.grupo = VGroupRecord.grupo
+			  -- Apenas colunas que realmente existem na tabela destino (ignora metadados de controle/segmento)
+			  AND EXISTS (
+				  SELECT 1 
+				  FROM information_schema.columns 
+				  WHERE table_schema = split_part(V_tabela_destino, '.', 1)
+				    AND table_name = split_part(V_tabela_destino, '.', 2)
+				    AND column_name = lca.nome_coluna
+			  );
 
-			EXECUTE V_sql;
-		END IF;
+			IF V_colunas IS NOT NULL THEN
+				V_sql := format(
+					'INSERT INTO ' || V_tabela_destino || ' (%1$s) ' ||
+					'SELECT %2$s ' ||
+					'FROM public.registro_arquivo ra ' ||
+					'WHERE ra.id_arquivo = %3$L ' ||
+					'  AND ra.numero_linha > 1 ' ||
+					'  AND ra.mensagem_erro IS NULL ' ||
+					'  AND NOT EXISTS ( ' ||
+					'      SELECT 1 FROM ' || V_tabela_destino || ' ma WHERE ma.id_arquivo = ra.id_arquivo AND ma.numero_linha = ra.numero_linha ' ||
+					'  ) ' ||
+					'  AND NOT EXISTS ( ' ||
+					'      SELECT 1 FROM public.leiaute_campo_arquivo lca2 ' ||
+					'      WHERE lca2.id_leiaute_arquivo = %4$L ' ||
+					'        AND lca2.tipo_campo = 3 ' ||
+					'        AND lca2.grupo = ''geral'' ' ||
+					'        AND lca2.valor_padrao IS NOT NULL ' ||
+					'        AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER) ' ||
+					'  ) ' ||
+					CASE 
+						WHEN VGroupRecord.grupo <> 'geral' THEN
+							format(
+								'  AND NOT EXISTS ( ' ||
+								'      SELECT 1 FROM public.leiaute_campo_arquivo lca2 ' ||
+								'      WHERE lca2.id_leiaute_arquivo = %1$L ' ||
+								'        AND lca2.tipo_campo = 3 ' ||
+								'        AND lca2.grupo = %2$L ' ||
+								'        AND lca2.valor_padrao IS NOT NULL ' ||
+								'        AND lca2.valor_padrao <> SUBSTRING(ra.linha_arquivo, lca2.posicao_inicial::INTEGER, lca2.tamanho::INTEGER) ' ||
+								'  ) ',
+								VLeiauteID, VGroupRecord.grupo
+							)
+						ELSE ''
+					END,
+					V_colunas,
+					V_select,
+					V_id_arquivo,
+					VLeiauteID
+				);
+
+				EXECUTE V_sql;
+			END IF;
+		END LOOP;
 	END LOOP;
 END;
 $$;

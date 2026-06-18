@@ -35,8 +35,16 @@ BEGIN
 			  SELECT 1 FROM public.header_arquivo ha WHERE ha.id_arquivo = ra_h.id_arquivo
 		  )
 		  -- Os movimentos já devem estar processados
-		  AND EXISTS (
-			  SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  AND (
+			  EXISTS (SELECT 1 FROM public.movimento_arquivo ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_folha_pagamento_240_segmento_a ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_folha_pagamento_240_segmento_b ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_1 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_2 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_3 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_4 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_5 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_6 ma WHERE ma.id_arquivo = ra_h.id_arquivo)
 		  )
 		  -- O trailer ainda não deve estar processado
 		  AND NOT EXISTS (
