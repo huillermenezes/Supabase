@@ -3,6 +3,7 @@ DROP FUNCTION IF EXISTS public.f_storage_object_set_request_id() CASCADE;
 CREATE OR REPLACE FUNCTION public.f_storage_object_set_request_id()
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
 	VVariavelGenerica RECORD;
@@ -20,10 +21,13 @@ BEGIN
 			, jsonb_concat(
 				o.metadata,
 				jsonb_build_object(
-					'request_id', 
+					'request_id',
 					net.http_get(
 						url := CONCAT(VVariavelGenerica.url_storage, 'hetzner_files/', o.name),
-						headers := jsonb_build_object('apikey', VVariavelGenerica.auth_key)
+						headers := jsonb_build_object(
+							'apikey', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key),
+							'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key))
+						)
 					)
 				)
 			) AS metadata

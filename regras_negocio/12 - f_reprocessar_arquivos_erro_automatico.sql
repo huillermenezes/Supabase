@@ -9,11 +9,14 @@ DECLARE
 	V_url_move TEXT;
 	V_auth_key TEXT;
 BEGIN
-	-- 1. Obtém as credenciais do Storage no cofre
+	-- 1. Obtém as credenciais do Storage no cofre (tratando barra final de forma robusta)
 	SELECT 
 		REPLACE(
-			(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-			, '/object/authenticated/', '/object/move'
+			REPLACE(
+				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
+				, '/object/authenticated/', '/object/move'
+			)
+			, '/object/authenticated', '/object/move'
 		) AS url_move
 		, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
 	INTO V_url_move, V_auth_key;
@@ -66,6 +69,7 @@ BEGIN
 			, 'sourceKey', t.caminho_erro
 			, 'destinationKey', CONCAT('input/', t.nome_arquivo)
 		)
+		, timeout_milliseconds := 15000
 	)
 	FROM temp_arquivos_reprocessar t;
 

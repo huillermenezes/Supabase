@@ -3,6 +3,7 @@ DROP FUNCTION IF EXISTS public.f_storage_object_set_id() CASCADE;
 CREATE OR REPLACE FUNCTION public.f_storage_object_set_id()
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
 	-- Atualiza em lote todos os objetos na pasta input/ que não possuem a propriedade 'id' em seu metadado

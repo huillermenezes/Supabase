@@ -7,20 +7,63 @@ SECURITY DEFINER
 AS $$
 DECLARE
 	VVariavelGenerica RECORD;
-	VRecord RECORD;
 BEGIN
-	-- 1. Obter as credenciais de acesso seguro do cofre do Vault
+	-- 1. Obter as credenciais de acesso seguro do cofre do Vault (tratando barra final de forma robusta)
 	SELECT 
 		REPLACE(
-			(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-			, '/object/authenticated/', '/object/move'
+			REPLACE(
+				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
+				, '/object/authenticated/', '/object/move'
+			)
+			, '/object/authenticated', '/object/move'
 		) AS url_move
 		, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
 	INTO VVariavelGenerica;
 
-	-- 2. Ingestão em lote na tabela registro_arquivo
-	-- raw_lines: Extrai as linhas do response.body com ordinalidade para preservar a ordem original
-	WITH raw_lines AS (
+	IF VVariavelGenerica.url_move IS NULL OR VVariavelGenerica.auth_key IS NULL THEN
+		RETURN;
+	END IF;
+
+	-- 2. Cria tabela temporária com os arquivos candidatos para garantir alinhamento perfeito (evitando furos de limite/ordenação)
+	CREATE TEMP TABLE temp_objetos_processar AS
+	SELECT 
+		CAST(o.metadata ->> 'id' AS BIGINT) AS id_arquivo
+		, CAST(o.metadata ->> 'request_id' AS BIGINT) AS request_id
+		, storage.filename(o.name) AS nome_arquivo
+		, o.name AS caminho_origem
+		, o.bucket_id
+	FROM storage.objects o
+	WHERE o.bucket_id = 'hetzner_files'
+	  AND SPLIT_PART(o.name, '/', 1) = 'input'
+	  AND o.name NOT ILIKE '%cielo%'
+	  AND o.name NOT ILIKE '%getnet%'
+	  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
+	  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NOT NULL
+	  AND EXISTS (
+		  SELECT 1 
+		  FROM net._http_response hr 
+		  WHERE hr.id = CAST(o.metadata ->> 'request_id' AS BIGINT)
+	  )
+	ORDER BY o.created_at ASC
+	LIMIT 300;
+
+	-- Se não houver registros a processar, finaliza
+	IF NOT EXISTS (SELECT 1 FROM temp_objetos_processar) THEN
+		DROP TABLE IF EXISTS temp_objetos_processar;
+		RETURN;
+	END IF;
+
+	-- 3. Ingestão em lote na tabela registro_arquivo
+	INSERT INTO public.registro_arquivo (
+		id_arquivo, nome_arquivo, numero_linha, linha_arquivo
+	)
+	SELECT 
+		t.id_arquivo
+		, t.nome_arquivo
+		, rl.numero_linha
+		, rl.linha_arquivo
+	FROM temp_objetos_processar t
+	INNER JOIN (
 		SELECT  
 			hr.id request_id
 			, i.numero_linha
@@ -30,85 +73,41 @@ BEGIN
 		WHERE	hr.status_code < 300 
 		AND	NOT hr.timed_out 
 		AND	hr.error_msg IS NULL
-		AND NOT NULLIF(TRIM(i.linha_arquivo), '') IS NULL
-	),
-	-- sub_storage_objects: Traz as chaves associadas e extrai o ID sequencial de controle (metadata.id)
-	sub_storage_objects AS (
-		SELECT 
-			CAST(o.metadata ->> 'id' AS BIGINT) AS id_arquivo
-			, CAST(o.metadata ->> 'request_id' AS BIGINT) AS request_id
-			, storage.filename(o.name) AS nome_arquivo
-		FROM storage.objects o
-		WHERE o.bucket_id = 'hetzner_files'
-		  AND SPLIT_PART(o.name, '/', 1) = 'input'
-		  AND o.name NOT ILIKE '%cielo%'
-		  AND o.name NOT ILIKE '%getnet%'
-		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
-		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NOT NULL
-		  AND EXISTS (
-			  SELECT 1 
-			  FROM net._http_response hr 
-			  WHERE hr.id = CAST(o.metadata ->> 'request_id' AS BIGINT)
-		  )
-		ORDER BY o.created_at ASC
-		LIMIT 300
-	)
-	INSERT INTO public.registro_arquivo (
-		id_arquivo, nome_arquivo, numero_linha, linha_arquivo
-	)
-	SELECT 
-		sso.id_arquivo
-		, sso.nome_arquivo
-		, rl.numero_linha
-		, rl.linha_arquivo
-	FROM	sub_storage_objects sso
-		INNER JOIN raw_lines rl ON (rl.request_id = sso.request_id)
+		AND	NOT NULLIF(TRIM(i.linha_arquivo), '') IS NULL
+	) rl ON (rl.request_id = t.request_id)
 	WHERE NOT EXISTS (
 		SELECT	1 
 		FROM	public.registro_arquivo ra
-		WHERE	ra.id_arquivo = sso.id_arquivo
+		WHERE	ra.id_arquivo = t.id_arquivo
 		AND	ra.numero_linha = rl.numero_linha
 	)
 	ON CONFLICT (id_arquivo, numero_linha) DO NOTHING;
 
-	-- 3. Movimentação física dos arquivos no Storage (processamento/ ou erro/)
+	-- 4. Movimentação física dos arquivos no Storage (processamento/ ou error/) em lote
 	PERFORM net.http_post(
 		url := VVariavelGenerica.url_move
-		, headers := sub.headers 
-		, body := sub.body
+		, headers := JSONB_BUILD_OBJECT(
+			'apikey', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key)
+			, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key))
+			, 'Content-Type', 'application/json'
+		)
+		, body := jsonb_build_object(
+			'bucketId', t.bucket_id 
+			, 'sourceKey', t.caminho_origem
+			, 'destinationKey', 
+				CONCAT(
+					(CASE WHEN EXISTS(
+						SELECT	1 
+						FROM	public.registro_arquivo ra 
+						WHERE	ra.id_arquivo = t.id_arquivo
+					) THEN 'processamento/' ELSE 'error/' END)
+					, t.nome_arquivo
+				)
+		)
+		, timeout_milliseconds := 15000
 	)
-	FROM (
-		SELECT 
-			JSONB_BUILD_OBJECT(
-				'apikey', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key)
-				, 'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key))
-				, 'Content-Type', 'application/json'
-			) AS headers
-			, jsonb_build_object(
-				'bucketId', o.bucket_id 
-				, 'sourceKey', o.name
-				, 'destinationKey', 
-					CONCAT(
-						(CASE WHEN EXISTS(
-							SELECT	1 
-							FROM	registro_arquivo ra 
-							WHERE	ra.id_arquivo = CAST(o.metadata ->> 'id' AS BIGINT)
-						) THEN 'processamento/' ELSE 'error/' END)
-						, storage.filename(o.name)
-					)
-			) AS body
-		FROM storage.objects o
-		WHERE o.bucket_id = 'hetzner_files'
-		  AND SPLIT_PART(o.name, '/', 1) = 'input'
-		  AND o.name NOT ILIKE '%cielo%'
-		  AND o.name NOT ILIKE '%getnet%'
-		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
-		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NOT NULL
-		  AND EXISTS (
-			  SELECT 1 
-			  FROM net._http_response hr 
-			  WHERE hr.id = CAST(o.metadata ->> 'request_id' AS BIGINT)
-		  )
-	) sub;
+	FROM temp_objetos_processar t;
+
+	DROP TABLE temp_objetos_processar;
 END;
 $$;

@@ -15,7 +15,7 @@ DECLARE
 BEGIN
 	-- Só executa para o nosso bucket específico
 	IF NEW.bucket_id = 'hetzner_files' THEN
-		-- Busca o ID correspondente ao nome do arquivo
+		-- Busca o ID correspondente ao nome do arquivo (usando o índice parcial de numero_linha = 1)
 		SELECT id_arquivo INTO V_id_arquivo
 		FROM public.registro_arquivo
 		WHERE nome_arquivo = storage.filename(NEW.name)
