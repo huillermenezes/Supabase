@@ -19,8 +19,16 @@ BEGIN
 		  AND request_id_webhook IS NULL
 		ORDER BY id_arquivo
 	LOOP
-		-- Agrupa em um array JSON todos os registros pendentes do respectivo arquivo
-		SELECT COALESCE(JSONB_AGG(TO_JSONB(m)), '[]'::jsonb)
+		-- Agrupa em um array JSON todos os registros pendentes do respectivo arquivo, incluindo evento e ref_projeto no objeto
+		SELECT COALESCE(
+			JSONB_AGG(
+				TO_JSONB(m) || JSONB_BUILD_OBJECT(
+					'evento', 'lancamento_cartao_credito',
+					'ref_projeto', 'cartao_credito'
+				)
+			),
+			'[]'::jsonb
+		)
 		INTO V_payload
 		FROM public.movimento_cartao_retorno_bradesco m
 		WHERE m.id_arquivo = V_id_arquivo
