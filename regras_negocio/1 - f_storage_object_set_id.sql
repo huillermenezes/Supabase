@@ -19,6 +19,8 @@ BEGIN
 		  AND o.name NOT ILIKE '%cielo%'
 		  AND o.name NOT ILIKE '%getnet%'
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NULL
+		ORDER BY (SPLIT_PART(o.name, '/', 2) LIKE 'BV%') DESC, o.created_at ASC
+		LIMIT 1000
 	)
 	UPDATE  storage.objects o
 	SET metadata = sso.metadata

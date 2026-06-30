@@ -19,7 +19,8 @@ BEGIN
 		SELECT DISTINCT 
 			ra.id_arquivo, 
 			CAST(ra.conteudo_jsonb ->> 'id_leiaute_arquivo' AS BIGINT) AS id_leiaute_arquivo,
-			pla.id_empresa
+			pla.id_empresa,
+			(ra.nome_arquivo LIKE 'BV%') AS is_bv
 		FROM public.registro_arquivo ra
 		LEFT JOIN public.parametro_leiaute_arquivo pla 
 			ON pla.id = CAST(ra.conteudo_jsonb ->> 'id_parametro_leiaute_arquivo' AS BIGINT)
@@ -31,7 +32,7 @@ BEGIN
 			  FROM public.header_arquivo ha 
 			  WHERE ha.id_arquivo = ra.id_arquivo
 		  )
-		ORDER BY ra.id_arquivo ASC
+		ORDER BY is_bv DESC, ra.id_arquivo ASC
 		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;

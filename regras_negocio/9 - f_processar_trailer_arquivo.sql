@@ -23,7 +23,8 @@ BEGIN
 		SELECT DISTINCT 
 			ra_h.id_arquivo, 
 			CAST(ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' AS BIGINT) AS id_leiaute_arquivo,
-			pla.id_empresa
+			pla.id_empresa,
+			(ra_h.nome_arquivo LIKE 'BV%') AS is_bv
 		FROM public.registro_arquivo ra_h
 		LEFT JOIN public.parametro_leiaute_arquivo pla 
 			ON pla.id = CAST(ra_h.conteudo_jsonb ->> 'id_parametro_leiaute_arquivo' AS BIGINT)
@@ -44,13 +45,14 @@ BEGIN
 			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_3 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
 			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_4 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
 			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_5 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
-			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_6 ma WHERE ma.id_arquivo = ra_h.id_arquivo)
+			  EXISTS (SELECT 1 FROM public.movimento_adquirente_400_tipo_6 ma WHERE ma.id_arquivo = ra_h.id_arquivo) OR
+			  EXISTS (SELECT 1 FROM public.movimento_cartao_retorno_bradesco ma WHERE ma.id_arquivo = ra_h.id_arquivo)
 		  )
 		  -- O trailer ainda não deve estar processado
 		  AND NOT EXISTS (
 			  SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo
 		  )
-		ORDER BY ra_h.id_arquivo ASC
+		ORDER BY is_bv DESC, ra_h.id_arquivo ASC
 		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;

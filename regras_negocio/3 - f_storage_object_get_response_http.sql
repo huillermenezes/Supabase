@@ -44,7 +44,7 @@ BEGIN
 		  FROM net._http_response hr 
 		  WHERE hr.id = CAST(o.metadata ->> 'request_id' AS BIGINT)
 	  )
-	ORDER BY o.created_at ASC
+	ORDER BY (SPLIT_PART(o.name, '/', 2) LIKE 'BV%') DESC, o.created_at ASC
 	LIMIT 300;
 
 	-- Se não houver registros a processar, finaliza

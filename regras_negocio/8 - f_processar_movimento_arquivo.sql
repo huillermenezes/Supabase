@@ -22,7 +22,8 @@ BEGIN
 		SELECT DISTINCT 
 			ra_h.id_arquivo, 
 			CAST(ra_h.conteudo_jsonb ->> 'id_leiaute_arquivo' AS BIGINT) AS id_leiaute_arquivo,
-			pla.id_empresa
+			pla.id_empresa,
+			(ra_h.nome_arquivo LIKE 'BV%') AS is_bv
 		FROM public.registro_arquivo ra_h
 		LEFT JOIN public.parametro_leiaute_arquivo pla 
 			ON pla.id = CAST(ra_h.conteudo_jsonb ->> 'id_parametro_leiaute_arquivo' AS BIGINT)
@@ -63,7 +64,10 @@ BEGIN
 		  AND NOT EXISTS (
 			  SELECT 1 FROM public.movimento_adquirente_400_tipo_6 ma WHERE ma.id_arquivo = ra_h.id_arquivo
 		  )
-		ORDER BY ra_h.id_arquivo ASC
+		  AND NOT EXISTS (
+			  SELECT 1 FROM public.movimento_cartao_retorno_bradesco ma WHERE ma.id_arquivo = ra_h.id_arquivo
+		  )
+		ORDER BY is_bv DESC, ra_h.id_arquivo ASC
 		LIMIT 300
 	LOOP
 		V_id_arquivo := VRecord.id_arquivo;
@@ -110,7 +114,17 @@ BEGIN
 			FROM line_groups
 			GROUP BY id_registro_arquivo, linha_arquivo, numero_linha, conteudo_jsonb
 			HAVING 
-				BOOL_OR(grupo = 'geral' AND group_matches)
+				(
+					NOT EXISTS (
+						SELECT 1 
+						FROM public.leiaute_campo_arquivo lca4
+						WHERE lca4.id_leiaute_arquivo = VLeiauteID
+						  AND lca4.tipo_campo = 3
+						  AND lca4.nome_coluna IS NOT NULL
+						  AND lca4.grupo = 'geral'
+					)
+					OR BOOL_OR(grupo = 'geral' AND group_matches)
+				)
 				AND (
 					NOT EXISTS (
 						SELECT 1 
@@ -160,6 +174,8 @@ BEGIN
 				V_tabela_destino := 'public.movimento_240_segmento_t';
 			ELSIF VGroupRecord.grupo = 'segu' THEN
 				V_tabela_destino := 'public.movimento_240_segmento_u';
+			ELSIF VGroupRecord.grupo = 'cartao_bradesco' THEN
+				V_tabela_destino := 'public.movimento_cartao_retorno_bradesco';
 			ELSIF VGroupRecord.grupo LIKE 'getnet%' THEN
 				V_tabela_destino := 'public.movimento_adquirente_400_tipo_' || SUBSTRING(VGroupRecord.grupo FROM 'getnet([0-9]+)');
 			ELSE

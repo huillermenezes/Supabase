@@ -18,6 +18,8 @@ SELECT cron.unschedule('pipeline_9_processar_trailer');
 SELECT cron.unschedule('pipeline_10_mover_erro');
 SELECT cron.unschedule('pipeline_11_mover_backup');
 SELECT cron.unschedule('pipeline_12_reprocessar_erros');
+SELECT cron.unschedule('pipeline_13_enviar_webhook');
+SELECT cron.unschedule('pipeline_14_processar_resposta_webhook');
 -- Remove legado de nomes antigos
 SELECT cron.unschedule('pipeline_10_mover_backup');
 SELECT cron.unschedule('pipeline_11_reprocessar_erros');
@@ -107,4 +109,18 @@ SELECT cron.schedule(
 	'pipeline_12_reprocessar_erros',
 	'55 * * * *',
 	$$ SELECT public.f_reprocessar_arquivos_erro_automatico(); $$
+);
+
+-- Etapa 13: Envia os movimentos do cartão Bradesco via webhook para o BrApoio (Minuto 52)
+SELECT cron.schedule(
+	'pipeline_13_enviar_webhook',
+	'52 * * * *',
+	$$ SELECT public.f_enviar_movimento_cartao_retorno_bradesco_webhook(); $$
+);
+
+-- Etapa 14: Processa o retorno do webhook do cartão Bradesco (Minuto 54)
+SELECT cron.schedule(
+	'pipeline_14_processar_resposta_webhook',
+	'54 * * * *',
+	$$ SELECT public.f_processar_resposta_webhook_bradesco(); $$
 );

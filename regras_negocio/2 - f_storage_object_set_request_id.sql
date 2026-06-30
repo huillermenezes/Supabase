@@ -23,11 +23,12 @@ BEGIN
 				jsonb_build_object(
 					'request_id',
 					net.http_get(
-						url := CONCAT(VVariavelGenerica.url_storage, 'hetzner_files/', o.name),
+						url := CONCAT(VVariavelGenerica.url_storage, 'hetzner_files/', REPLACE(o.name, ' ', '%20')),
 						headers := jsonb_build_object(
 							'apikey', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key),
 							'Authorization', CONCAT('Bearer ', TRIM(BOTH E' \r\n\t' FROM VVariavelGenerica.auth_key))
-						)
+						),
+						timeout_milliseconds := 30000
 					)
 				)
 			) AS metadata
@@ -40,7 +41,7 @@ BEGIN
 		  AND o.name NOT ILIKE '%getnet%'
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT) IS NOT NULL
 		  AND CAST(NULLIF(TRIM(o.metadata ->> 'request_id'), '') AS BIGINT) IS NULL
-		ORDER BY o.created_at ASC
+		ORDER BY (SPLIT_PART(o.name, '/', 2) LIKE 'BV%') DESC, o.created_at ASC
 		LIMIT 300
 	)
 	UPDATE  storage.objects o

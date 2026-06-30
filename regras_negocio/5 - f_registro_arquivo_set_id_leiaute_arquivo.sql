@@ -37,6 +37,7 @@ BEGIN
 		WHERE ra.numero_linha = 1
 		  AND ra.mensagem_erro IS NULL   -- sem erro registrado
 		  AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
+		  AND ra.conteudo_jsonb ->> 'id_leiaute_arquivo' IS NULL -- ainda não identificado de forma definitiva
 		ORDER BY ra.id_arquivo ASC
 		LIMIT 300
 	LOOP

@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_3 CASCADE;
 DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_4 CASCADE;
 DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_5 CASCADE;
 DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_6 CASCADE;
+DROP TABLE IF EXISTS public.movimento_cartao_retorno_bradesco CASCADE;
 DROP TABLE IF EXISTS public.trailer_arquivo CASCADE;
 DROP TABLE IF EXISTS public.trailer_lote CASCADE;
 DROP TABLE IF EXISTS public.leiaute_campo_arquivo CASCADE;
@@ -589,6 +590,42 @@ CREATE TABLE IF NOT EXISTS public.movimento_adquirente_400_tipo_6 (
 	, reservado_futuro													TEXT
 	, CONSTRAINT pk_movimento_adquirente_400_tipo_6 PRIMARY KEY (id)
 	, CONSTRAINT fk_movimento_adquirente_400_tipo_6_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.movimento_cartao_retorno_bradesco (
+	id																		BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo															BIGINT NOT NULL
+	, id_empresa															BIGINT NOT NULL
+	, id_leiaute_arquivo													BIGINT NOT NULL
+	, tipo_campo															BIGINT NOT NULL
+	, numero_linha															BIGINT NOT NULL
+	, codigo_registro														TEXT
+	, codigo_estabelecimento											TEXT
+	, numero_cartao														TEXT
+	, numero_parcelas														TEXT
+	, nsu_adquirente														TEXT
+	, data_transacao														TEXT
+	, valor_transacao														TEXT
+	, valor_faturado														TEXT
+	, data_pagamento														TEXT
+	, moeda																	TEXT
+	, cidade_estabelecimento											TEXT
+	, nome_estabelecimento												TEXT
+	, mcc																		TEXT
+	, categoria_mcc														TEXT
+	, simbolo_moeda														TEXT
+	, sinal_transacao														TEXT
+	, data_cotacao															TEXT
+	, taxa_conversao														TEXT
+	, valor_reais															TEXT
+	, pais_transacao														TEXT
+	, registro_postagem													TEXT
+	, enviado_brapoio														BOOLEAN DEFAULT FALSE NOT NULL
+	, request_id_webhook													BIGINT
+	, status_webhook														INTEGER
+	, retorno_webhook														TEXT
+	, CONSTRAINT pk_movimento_cartao_retorno_bradesco PRIMARY KEY (id)
+	, CONSTRAINT fk_movimento_cartao_retorno_bradesco_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
 );
 
 CREATE TABLE IF NOT EXISTS public.trailer_arquivo(

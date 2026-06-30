@@ -85,6 +85,7 @@ BEGIN
 	DELETE FROM public.movimento_adquirente_400_tipo_4 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.movimento_adquirente_400_tipo_5 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.movimento_adquirente_400_tipo_6 WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
+	DELETE FROM public.movimento_cartao_retorno_bradesco WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.header_arquivo WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	DELETE FROM public.header_lote WHERE id_arquivo IN (SELECT id_arquivo FROM temp_arquivos_reprocessar WHERE id_arquivo IS NOT NULL);
 	
