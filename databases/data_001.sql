@@ -603,6 +603,7 @@ CREATE TABLE IF NOT EXISTS public.movimento_cartao_retorno_bradesco (
 	, codigo_estabelecimento											TEXT
 	, numero_cartao														TEXT
 	, numero_parcelas														TEXT
+	, numero_parcela_relacionada										TEXT
 	, nsu_adquirente														TEXT
 	, data_transacao														TEXT
 	, valor_transacao														TEXT
