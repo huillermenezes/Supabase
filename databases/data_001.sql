@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_4 CASCADE;
 DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_5 CASCADE;
 DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_6 CASCADE;
 DROP TABLE IF EXISTS public.movimento_cartao_retorno_bradesco CASCADE;
+DROP TABLE IF EXISTS public.log_envio_webhook CASCADE;
 DROP TABLE IF EXISTS public.trailer_arquivo CASCADE;
 DROP TABLE IF EXISTS public.trailer_lote CASCADE;
 DROP TABLE IF EXISTS public.leiaute_campo_arquivo CASCADE;
@@ -627,6 +628,20 @@ CREATE TABLE IF NOT EXISTS public.movimento_cartao_retorno_bradesco (
 	, retorno_webhook														TEXT
 	, CONSTRAINT pk_movimento_cartao_retorno_bradesco PRIMARY KEY (id)
 	, CONSTRAINT fk_movimento_cartao_retorno_bradesco_leiaute_arquivo FOREIGN KEY (id_leiaute_arquivo) REFERENCES public.leiaute_arquivo(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.log_envio_webhook (
+	id																		BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
+	, id_arquivo															BIGINT NOT NULL
+	, request_id_webhook													BIGINT
+	, url_destino															TEXT NOT NULL
+	, conteudo_json															JSONB NOT NULL
+	, status_http															INTEGER
+	, resposta_retorno														TEXT
+	, sucesso																BOOLEAN DEFAULT FALSE NOT NULL
+	, data_envio															TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+	, data_resposta															TIMESTAMP WITH TIME ZONE
+	, CONSTRAINT pk_log_envio_webhook PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.trailer_arquivo(

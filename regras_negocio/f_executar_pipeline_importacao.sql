@@ -133,14 +133,14 @@ SELECT cron.schedule(
 SELECT cron.schedule(
 	'pipeline_14_enviar_webhook',
 	'52 * * * *',
-	$$ SELECT public.f_enviar_movimento_cartao_retorno_bradesco_webhook(); $$
+	$$ SELECT bradesco.f_enviar_retorno_cartao_webhook(); $$
 );
 
 -- Etapa 15: Processa o retorno do webhook do cartão Bradesco (Minuto 54)
 SELECT cron.schedule(
 	'pipeline_15_processar_resposta_webhook',
 	'54 * * * *',
-	$$ SELECT public.f_processar_resposta_webhook_bradesco(); $$
+	$$ SELECT bradesco.f_processar_resposta_retorno_cartao_webhook(); $$
 );
 
 -- Etapa 16: Reprocessa arquivos em erro cujos leiautes ou parâmetros foram corrigidos (Minuto 55)
