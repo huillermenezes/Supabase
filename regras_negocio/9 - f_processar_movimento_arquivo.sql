@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_processar_movimento_arquivo() CASCADE;
+DROP FUNCTION IF EXISTS public.f_processar_movimento_arquivo();
 
 CREATE OR REPLACE FUNCTION public.f_processar_movimento_arquivo()
 RETURNS VOID

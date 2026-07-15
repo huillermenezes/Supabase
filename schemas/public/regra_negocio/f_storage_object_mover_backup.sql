@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_storage_object_mover_backup() CASCADE;
+DROP FUNCTION IF EXISTS public.f_storage_object_mover_backup();
 
 CREATE OR REPLACE FUNCTION public.f_storage_object_mover_backup()
 RETURNS VOID
@@ -47,10 +47,12 @@ BEGIN
 		INNER JOIN public.registro_arquivo ra_h 
 			ON ra_h.id_arquivo = CAST(NULLIF(TRIM(o.metadata ->> 'id'), '') AS BIGINT)
 			AND ra_h.numero_linha = 1
-		INNER JOIN public.trailer_arquivo ta 
-			ON ta.id_arquivo = ra_h.id_arquivo
 		WHERE o.bucket_id = 'hetzner_files'
 		  AND o.name LIKE 'processamento/%'
+		  AND (
+			  EXISTS (SELECT 1 FROM public.trailer_arquivo ta WHERE ta.id_arquivo = ra_h.id_arquivo)
+			  OR EXISTS (SELECT 1 FROM bradesco.cartao_credito_trailer_arquivo ta_b WHERE ta_b.id_arquivo = ra_h.id_arquivo)
+		  )
 		ORDER BY o.created_at ASC
 		LIMIT 300
 	) sub;

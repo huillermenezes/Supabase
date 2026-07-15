@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_storage_object_mover_erro() CASCADE;
+DROP FUNCTION IF EXISTS public.f_storage_object_mover_erro();
 
 CREATE OR REPLACE FUNCTION public.f_storage_object_mover_erro()
 RETURNS VOID

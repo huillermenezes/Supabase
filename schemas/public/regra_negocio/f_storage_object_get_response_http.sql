@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_storage_object_get_response_http() CASCADE;
+DROP FUNCTION IF EXISTS public.f_storage_object_get_response_http();
 
 CREATE OR REPLACE FUNCTION public.f_storage_object_get_response_http()
 RETURNS VOID

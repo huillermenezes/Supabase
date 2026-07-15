@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_registro_arquivo_set_id_leiaute_arquivo() CASCADE;
+DROP FUNCTION IF EXISTS public.f_registro_arquivo_set_id_leiaute_arquivo();
 
 CREATE OR REPLACE FUNCTION public.f_registro_arquivo_set_id_leiaute_arquivo()
 RETURNS VOID

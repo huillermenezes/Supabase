@@ -2,28 +2,28 @@
 -- ESTRUTURA DO BANCO DE DADOS (SCHEMAS)
 -- =================================================================================
 
-DROP TABLE IF EXISTS public.registro_arquivo CASCADE;
---DROP TABLE IF EXISTS public.storage_objects_download CASCADE;
-DROP TABLE IF EXISTS public.header_arquivo CASCADE;
-DROP TABLE IF EXISTS public.header_lote CASCADE;
-DROP TABLE IF EXISTS public.movimento_arquivo CASCADE;
-DROP TABLE IF EXISTS public.movimento_folha_pagamento_240_segmento_a CASCADE;
-DROP TABLE IF EXISTS public.movimento_folha_pagamento_240_segmento_b CASCADE;
-DROP TABLE IF EXISTS public.movimento_240_segmento_t CASCADE;
-DROP TABLE IF EXISTS public.movimento_240_segmento_u CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_1 CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_2 CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_3 CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_4 CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_5 CASCADE;
-DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_6 CASCADE;
-DROP TABLE IF EXISTS public.movimento_cartao_retorno_bradesco CASCADE;
-DROP TABLE IF EXISTS public.log_envio_webhook CASCADE;
-DROP TABLE IF EXISTS public.trailer_arquivo CASCADE;
-DROP TABLE IF EXISTS public.trailer_lote CASCADE;
-DROP TABLE IF EXISTS public.leiaute_campo_arquivo CASCADE;
-DROP TABLE IF EXISTS public.parametro_leiaute_arquivo CASCADE;
-DROP TABLE IF EXISTS public.leiaute_arquivo CASCADE;
+DROP TABLE IF EXISTS public.leiaute_campo_arquivo;
+DROP TABLE IF EXISTS public.parametro_leiaute_arquivo;
+DROP TABLE IF EXISTS public.header_arquivo;
+DROP TABLE IF EXISTS public.header_lote;
+DROP TABLE IF EXISTS public.movimento_arquivo;
+DROP TABLE IF EXISTS public.movimento_folha_pagamento_240_segmento_a;
+DROP TABLE IF EXISTS public.movimento_folha_pagamento_240_segmento_b;
+DROP TABLE IF EXISTS public.movimento_240_segmento_t;
+DROP TABLE IF EXISTS public.movimento_240_segmento_u;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_1;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_2;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_3;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_4;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_5;
+DROP TABLE IF EXISTS public.movimento_adquirente_400_tipo_6;
+DROP TABLE IF EXISTS public.movimento_cartao_retorno_bradesco;
+DROP TABLE IF EXISTS public.log_envio_webhook;
+DROP TABLE IF EXISTS public.trailer_arquivo;
+DROP TABLE IF EXISTS public.trailer_lote;
+DROP TABLE IF EXISTS public.storage_objects_download;
+DROP TABLE IF EXISTS public.registro_arquivo;
+DROP TABLE IF EXISTS public.leiaute_arquivo;
 
 CREATE TABLE IF NOT EXISTS public.registro_arquivo (
 	id																		BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
@@ -700,71 +700,3 @@ CREATE TABLE IF NOT EXISTS public.trailer_lote (
 );
 
 
-
-
--- =================================================================================
--- LEGACY / RASGUNHOS E EXEMPLOS DE CÓDIGO COMENTADOS
--- =================================================================================
-/*
-CREATE SEQUENCE IF NOT EXISTS public.seq_pkey START WITH 1;
-
-WITH sub_storage_object AS (
-    SELECT  
-        o.id_storage
-        , o.metadata || JSONB_BUILD_OBJECT('id', NEXTVAL('seq_pkey')) metadata
-    FROM    storage.objects o
-    WHERE   ob.bucket_id = 'hetzner_files'
-    AND SPLIT_PART(ob.name, '/', 1) = 'input'
-    AND NOT NULLIF(TRIM(SPLIT_PART(ob.name, '/', 2)), '') IS NULL
-    AND SPLIT_PART(ob.name, '/', 2) NOT IN ('.emptyFolderPlaceholder')
-    AND CAST(NULLIF(TRIM(ob.metadata ->> 'id'), '') AS BIGINT) IS NULL
-)
-UPDATE  storage.objects o
-SET metadata = sso.metadata
-FROM    sub_storage_object sso
-WHERE   sso.id_storage = o.id_storage;
-
-FOR I IN
-SELECT 
-   LA.id_leiaute_arquivo
-   , LCA.TIPO_REGISTRO
-FROM LEIAUTE_ARQUIVO la 
-   INNER JOIN LEIAUTE_CAMPO_ARQUIVO lca 
-      ON lca.id_leiaute_arquivo = la.id
-GROUP BY 
-   LA.id_leiaute_arquivo
-   , LCA.TIPO_REGISTRO
-LOOP
-   SELECT   JSONB_AGG(JSONB_BUILD_OBJECT(expressao_valor, SUBSTRING(ra.linha_arquivo, lca.posicao_inicial, lca.tamanho)))
-   FROM  registro_arquivo
-   WHERE ra.conteudo_jsonb ->> lista_id_leiaute_arquivo = I.id_leiaute_arquivo
-
-END LOOP;
-
-
-		SELECT
-			ra.id_registro_arquivo
-			, ra.id_arquivo
-			, ra.nome_arquivo
-			, o.name AS caminho_origem
-			, REPLACE(
-				(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'url_storage')
-				, '/object/authenticated/', '/object/move'
-			) AS url_move
-			, (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'storage_auth_key') AS auth_key
-			, (
-				SELECT	ARRAY_AGG(DISTINCT pla.id_parametro_leiaute_arquivo) lista_id_parametro_leiaute_arquivo
-				FROM	parametro_leiaute_arquivo pla
-					INNER leiaute_campo_arquivo lca ON (lca.id_leiaute_arquivo = pla.id_leiaute_arquivo)
-				WHERE	lca.id_leiaute_arquivo = ANY(CAST(ra.conteudo_jsonb -> 'lista_id_leiaute_arquivo' AS BIGINT[]))
-				AND lca.tipo_campo = 1 -- Header Arquivo
-				AND lca.campo_identificacao
-				AND pla.codigo = SUBSTRING(ra.linha_arquivo, lca.posicao_inicial, lca.tamanho)
-			)
-		FROM public.registro_arquivo ra
-			INNER JOIN storage.objects o ON CAST(o.metadata ->> 'id' AS BIGINT) = ra.id_arquivo
-		WHERE ra.numero_linha = 1
-		AND ra.mensagem_erro IS NULL   -- sem erro registrado
-		AND NOT NULLIF(TRIM(ra.conteudo_jsonb ->> 'lista_id_leiaute_arquivo'), '') IS NULL  -- já tem candidatos de tamanho
-
-*/

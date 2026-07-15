@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_processar_trailer_lote() CASCADE;
+DROP FUNCTION IF EXISTS public.f_processar_trailer_lote();
 
 CREATE OR REPLACE FUNCTION public.f_processar_trailer_lote()
 RETURNS VOID

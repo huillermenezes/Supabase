@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_enviar_movimento_cartao_retorno_bradesco_webhook() CASCADE;
+DROP FUNCTION IF EXISTS public.f_enviar_movimento_cartao_retorno_bradesco_webhook();
 
 CREATE OR REPLACE FUNCTION public.f_enviar_movimento_cartao_retorno_bradesco_webhook()
 RETURNS VOID

@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_processar_header_lote() CASCADE;
+DROP FUNCTION IF EXISTS public.f_processar_header_lote();
 
 CREATE OR REPLACE FUNCTION public.f_processar_header_lote()
 RETURNS VOID

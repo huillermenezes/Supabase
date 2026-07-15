@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_leiaute_arquivo_validacao_identificacao() CASCADE;
+DROP FUNCTION IF EXISTS public.f_leiaute_arquivo_validacao_identificacao();
 
 CREATE OR REPLACE FUNCTION public.f_leiaute_arquivo_validacao_identificacao()
 RETURNS VOID

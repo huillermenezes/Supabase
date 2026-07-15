@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_leiaute_arquivo_validacao_tamanho() CASCADE;
+DROP FUNCTION IF EXISTS public.f_leiaute_arquivo_validacao_tamanho();
 
 CREATE OR REPLACE FUNCTION public.f_leiaute_arquivo_validacao_tamanho()
 RETURNS VOID

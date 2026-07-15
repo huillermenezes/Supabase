@@ -1031,7 +1031,9 @@ INSERT INTO public.parametro_leiaute_arquivo (
 	, (5, '30670051216301300419', '1477536414')
 	, (6, '30670051216301300419', '1477536414')
 	, (5, '30670050615401300416', '245604581')
-	, (6, '30670050615401300416', '245604581');
+	, (6, '30670050615401300416', '245604581')
+ON CONFLICT (id_leiaute_arquivo, codigo) DO UPDATE SET
+	id_empresa = EXCLUDED.id_empresa;
 
 INSERT INTO public.parametro_leiaute_arquivo (
 	id_leiaute_arquivo
@@ -1047,7 +1049,9 @@ INSERT INTO public.parametro_leiaute_arquivo (
 	, (5, '30670050610501300414', '824181013') -- nelore
 	, (6, '30670050610501300414', '824181013')
 	, (5, '30670056278801300424', '1557318529') -- vereda verde
-	, (6, '30670056278801300424', '1557318529');
+	, (6, '30670056278801300424', '1557318529')
+ON CONFLICT (id_leiaute_arquivo, codigo) DO UPDATE SET
+	id_empresa = EXCLUDED.id_empresa;
 
 -- ==============================================
 -- LAYOUT: retorno_cartao_bradesco

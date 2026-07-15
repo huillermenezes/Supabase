@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_storage_object_set_id() CASCADE;
+DROP FUNCTION IF EXISTS public.f_storage_object_set_id();
 
 CREATE OR REPLACE FUNCTION public.f_storage_object_set_id()
 RETURNS VOID

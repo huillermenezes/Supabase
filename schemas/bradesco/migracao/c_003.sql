@@ -8,13 +8,12 @@ CREATE TABLE IF NOT EXISTS bradesco.cartao_credito_header_arquivo (
 	id																		BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL
 	, id_arquivo															BIGINT NOT NULL
 	, id_empresa															BIGINT NOT NULL
-	, numero_linha															BIGINT NOT NULL
-	, codigo_registro														TEXT
-	, codigo_estabelecimento_centralizador							TEXT
-	, nome_estabelecimento												TEXT
-	, data_geracao															DATE
-	, data_processamento													DATE
-	, cnpj_estabelecimento												TEXT
+	, indetificacao_empresa												TEXT
+	, nome_empresa															TEXT
+	, data_geracao_arquivo												DATE
+	, data_fechamento_fatura											DATE
+	, data_vencimento_fatura											DATE
+	, cnpj_empresa															TEXT
 	, CONSTRAINT pk_bradesco_cartao_credito_header_arquivo PRIMARY KEY (id)
 	, CONSTRAINT uq_bradesco_cartao_credito_header_arquivo UNIQUE (id_arquivo, numero_linha)
 );
@@ -25,12 +24,11 @@ CREATE TABLE IF NOT EXISTS bradesco.cartao_credito_detalhe_portador (
 	, id_arquivo															BIGINT NOT NULL
 	, id_empresa															BIGINT NOT NULL
 	, numero_linha															BIGINT NOT NULL
-	, codigo_registro														TEXT
-	, codigo_estabelecimento											TEXT
+	, indetificacao_empresa												TEXT
 	, numero_cartao														TEXT
 	, nome_portador														TEXT
 	, endereco_portador													TEXT
-	, numero_endereco														TEXT
+	, numero_endereco_portador											TEXT
 	, bairro_portador														TEXT
 	, cidade_portador														TEXT
 	, uf_portador															TEXT

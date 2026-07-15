@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_processar_header_arquivo() CASCADE;
+DROP FUNCTION IF EXISTS public.f_processar_header_arquivo();
 
 CREATE OR REPLACE FUNCTION public.f_processar_header_arquivo()
 RETURNS VOID

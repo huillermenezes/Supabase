@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_processar_resposta_webhook_bradesco() CASCADE;
+DROP FUNCTION IF EXISTS public.f_processar_resposta_webhook_bradesco();
 
 CREATE OR REPLACE FUNCTION public.f_processar_resposta_webhook_bradesco()
 RETURNS VOID

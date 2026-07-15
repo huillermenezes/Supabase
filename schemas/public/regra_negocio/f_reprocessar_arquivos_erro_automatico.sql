@@ -1,4 +1,4 @@
-DROP FUNCTION IF EXISTS public.f_reprocessar_arquivos_erro_automatico() CASCADE;
+DROP FUNCTION IF EXISTS public.f_reprocessar_arquivos_erro_automatico();
 
 CREATE OR REPLACE FUNCTION public.f_reprocessar_arquivos_erro_automatico()
 RETURNS VOID
